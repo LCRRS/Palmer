@@ -1,8 +1,5 @@
-/*
-Coded by Marjan Olesch
-Sketch from Insctructables.com
-Open source - do what you want with this code!
-*/
+// Script to access and edit menu entries for a single ESC
+
 #include <Servo.h>
 
 

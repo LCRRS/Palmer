@@ -1,4 +1,4 @@
-//Main Definitions
+// LED control definitions
 
 int led1 = 12;
 

@@ -1,3 +1,6 @@
+// The following script is used to perform synchronous calibration
+// of four esc's using minimal and maximal signal frequencies
+
 #include <Servo.h>
 #define MAX_SIGNAL 2000
 #define MIN_SIGNAL 800

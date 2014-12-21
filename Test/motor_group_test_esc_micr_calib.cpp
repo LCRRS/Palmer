@@ -1,9 +1,6 @@
-// this uses the Arduino servo library included with version 0012 
-
-// caution, this code sweeps the motor up to maximum speed !
-// make sure the motor is mounted securily before running.
+// This script is used to test perform calibration routin and test the synchonization of all four motors
 #define MAX_SIGNAL 2000
-#define MIN_SIGNAL 800
+#define MIN_SIGNAL 700
 #include <Servo.h> 
 
 int mpin1 = 9;
@@ -31,23 +28,31 @@ void setSpeed(int speed){
 void setup()
 {
 	Serial.begin(9600);
-	myservo1.attach(mpin1);
-	myservo2.attach(mpin2);
-	myservo3.attach(mpin3);
-	myservo4.attach(mpin4);
-	 
-	Serial.println("Now writing maximum output.");
-	Serial.println("Turn on power source, then wait 2 seconds and press any key.");
-	motor.writeMicroseconds(MAX_SIGNAL);
-	// Wait for input
-	while (!Serial.available());
-	Serial.read();
-	// Send min output
-	Serial.println("Sending minimum output");
-	motor.writeMicroseconds(MIN_SIGNAL);
-
-	delay(5000);
-
+	if(Serial.available() > 0)
+	{
+        
+		myservo1.attach(mpin1);
+		myservo2.attach(mpin2);
+		myservo3.attach(mpin3);
+		myservo4.attach(mpin4);
+		 
+		Serial.println("Now writing maximum output.");
+		Serial.println("Turn on power source, then wait 2 seconds and press any key.");
+		myservo1.writeMicroseconds(MAX_SIGNAL);
+	        myservo2.writeMicroseconds(MAX_SIGNAL);
+	        myservo3.writeMicroseconds(MAX_SIGNAL);
+	        myservo4.writeMicroseconds(MAX_SIGNAL);
+		// Wait for input
+		while (!Serial.available());
+		Serial.read();
+		// Send min output
+		Serial.println("Sending minimum output");
+		myservo1.writeMicroseconds(MIN_SIGNAL);
+	        myservo2.writeMicroseconds(MIN_SIGNAL);
+	        myservo3.writeMicroseconds(MIN_SIGNAL);
+	        myservo4.writeMicroseconds(MIN_SIGNAL);
+		delay(5000);
+	}
 }
 
 

@@ -1,7 +1,4 @@
-// this uses the Arduino servo library included with version 0012 
-
-// caution, this code sweeps the motor up to maximum speed !
-// make sure the motor is mounted securily before running.
+// The following script is used for motor-testing
 
 #include <Servo.h> 
 

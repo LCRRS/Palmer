@@ -1,9 +1,5 @@
-/*
-*  This code is in the public domain.
-*  (Do whatever you want with it.)
-*/
+// The following script is used to find the speed of motors at calibrated min_signal values
 
-// Need the Servo library
 #include <Servo.h>
 
 // This is our motor.
