@@ -1,56 +1,40 @@
-//Main Definitions
+#include <Servo.h>
+
+#define MAX_SIGNAL 2000
+#define MIN_SIGNAL 800
+
+#include "I2Cdev.h"
+#include "MPU6050_6Axis_MotionApps20.h"
+#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+    #include "Wire.h"
+#endif
+MPU6050 mpu;
+#define OUTPUT_READABLE_YAWPITCHROLL
+#define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
+
+// Definitions needed for the mpu6050 board control
 
 int led1 = 12;
-
-int lastdelay = 0;
-
-
-const int setdelay = 7;
-
-// Brushless motor control definitions
-
-#include <Servo.h>
 
 Servo myservo1;
 Servo myservo2;
 Servo myservo3;
 Servo myservo4;
 
-
-
-void setSpeed(int speed){
+void setSpeed(int speed)
+{
  // speed is from 0 to 100 where 0 is off and 100 is maximum speed
  //the following maps speed values of 0-100 to angles from 0-180,
  // some speed controllers may need different values, see the ESC instructions
- int angle = speed;
- myservo1.write(angle); 
- myservo2.write(angle);
- myservo3.write(angle);
- myservo4.write(angle);   
- 
+    int angle = speed;
+    myservo1.write(angle);
+    myservo2.write(angle); 
+    myservo3.write(angle);
+    myservo4.write(angle); 
 }
 
 
 
-
-
-// DEfinitions needed for the mpu6050 board control
-
-#include "I2Cdev.h"
-
-#include "MPU6050_6Axis_MotionApps20.h"
-
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-    #include "Wire.h"
-#endif
-
-MPU6050 mpu;
-
-#define OUTPUT_READABLE_YAWPITCHROLL
-
-
-
-#define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 bool blinkState = false;
 
 // MPU control/status vars
@@ -63,16 +47,9 @@ uint8_t fifoBuffer[64]; // FIFO storage buffer
 
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
-VectorInt16 aa;         // [x, y, z]            accel sensor measurements
-VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
-VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
 VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
-// packet structure for InvenSense teapot demo
-uint8_t teapotPacket[14] = { '$', 0x02, 0,0, 0,0, 0,0, 0,0, 0x00, 0x00, '\r', '\n' };
-
 
 
 // ================================================================
@@ -86,18 +63,38 @@ void dmpDataReady() {
 
 
 
-// ================================================================
-// ===                      INITIAL SETUP                       ===
-// ================================================================
+/*=================================================================
+=====                      INITIAL SETUP                      =====
+=================================================================*/
 
 void setup() {
+    pinMode(led1, OUTPUT);
+
     Serial.begin(115200);
 
-    pinMode(led1, OUTPUT);
+ 
     myservo1.attach(6);
-    myservo2.attach(10);
-    myservo3.attach(5);
-    myservo4.attach(9);
+    myservo2.attach(5);
+    myservo3.attach(9);
+    myservo4.attach(10);
+     
+    Serial.println("Now writing maximum output.");
+    Serial.println("Turn on power source, then wait 2 seconds and press any key.");
+    myservo1.writeMicroseconds(MAX_SIGNAL);
+    myservo2.writeMicroseconds(MAX_SIGNAL);
+    myservo3.writeMicroseconds(MAX_SIGNAL);
+    myservo4.writeMicroseconds(MAX_SIGNAL);
+    // Wait for input
+    while (!Serial.available());
+    Serial.read();
+    // Send min output
+    Serial.println("Sending minimum output");
+    myservo1.writeMicroseconds(MIN_SIGNAL);
+    myservo2.writeMicroseconds(MIN_SIGNAL);
+    myservo3.writeMicroseconds(MIN_SIGNAL);
+    myservo4.writeMicroseconds(MIN_SIGNAL);
+    delay(5000);
+
 
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -107,11 +104,7 @@ void setup() {
         Fastwire::setup(400, true);
     #endif
 
-    // initialize serial communication
-    // (115200 chosen because it is required for Teapot Demo output, but it's
-    // really up to you depending on your project)
-
-    while (!Serial); // wait for Leonardo enumeration, others continue immediately
+    while (!Serial); 
 
 
     // initialize device
@@ -136,7 +129,7 @@ void setup() {
     mpu.setXGyroOffset(220);
     mpu.setYGyroOffset(76);
     mpu.setZGyroOffset(-85);
-    mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+    mpu.setZAccelOffset(1788);
 
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
@@ -177,50 +170,44 @@ void setup() {
 
 }
 
-int count=0;
 
 
+int old_ypr0; // comparison value used to check whether the gyroscope is stable
+int old_ypr1; // comparison value used to check whether the gyroscope is stable
+int old_ypr2; // comparison value used to check whether the gyroscope is stable
 
+int cycle_count = 0; // used to count how many gyroscope readings were taken. Is used to check the stability of gyroscope
 
-// ================================================================
-// ===                    MAIN PROGRAM LOOP                     ===
-// ================================================================
+bool initiation_count = true; // used to initiate motor start/warmup only once
+bool gyro_stable = false; // if gyroscope is stable, it allows the readings to be used for interrupts
+
+/*=================================================================
+======                    MAIN PROGRAM LOOP                  ======
+=================================================================*/
 
 void loop() {
 
-    int speed;
-
-
-    while (millis()<3000)
+    while (initiation_count == true)
     {
-        Serial.println(millis());
-        setSpeed(40);
-        delay(1000);
-        Serial.println(millis());
+        for (int speed = 30; speed < 45; speed++)
+        {
+            setSpeed(speed);
+            delay(1000);
+        }
+        initiation_count = false;
     }
-
-    long conversion;
-    long cat;
 
     // if programming failed, don't try to do anything
     if (!dmpReady) return;
 
     // wait for MPU interrupt or extra packet(s) available
-    while (!mpuInterrupt && fifoCount < packetSize) {
-        if (millis()-lastdelay > setdelay)
+    while (!mpuInterrupt && fifoCount < packetSize) 
+    {
+        if (gyro_stable == true)
         {
-            conversion = ypr[0] * 180/M_PI;
-
-            cat = abs(conversion);
-            speed = int(cat);
-            setSpeed(speed);
             digitalWrite(led1, HIGH);
         }
-        if( mpuInterrupt ) 
-        {
-            digitalWrite(led1, LOW);
-            break;
-        }
+
     }
     
 
@@ -249,31 +236,6 @@ void loop() {
         // (this lets us immediately read more without waiting for an interrupt)
         fifoCount -= packetSize;
 
-        #ifdef OUTPUT_READABLE_QUATERNION
-            // display quaternion values in easy matrix form: w x y z
-            mpu.dmpGetQuaternion(&q, fifoBuffer);
-            Serial.print("quat\t");
-            Serial.print(q.w);
-            Serial.print("\t");
-            Serial.print(q.x);
-            Serial.print("\t");
-            Serial.print(q.y);
-            Serial.print("\t");
-            Serial.println(q.z);
-        #endif
-
-        #ifdef OUTPUT_READABLE_EULER
-            // display Euler angles in degrees
-            mpu.dmpGetQuaternion(&q, fifoBuffer);
-            mpu.dmpGetEuler(euler, &q);
-            Serial.print("euler\t");
-            Serial.print(euler[0] * 180/M_PI);
-            Serial.print("\t");
-            Serial.print(euler[1] * 180/M_PI);
-            Serial.print("\t");
-            Serial.println(euler[2] * 180/M_PI);
-        #endif
-
         #ifdef OUTPUT_READABLE_YAWPITCHROLL
             // display Euler angles in degrees
             mpu.dmpGetQuaternion(&q, fifoBuffer);
@@ -287,52 +249,41 @@ void loop() {
             Serial.println(ypr[2] * 180/M_PI);
         #endif
 
-        #ifdef OUTPUT_READABLE_REALACCEL
-            // display real acceleration, adjusted to remove gravity
-            mpu.dmpGetQuaternion(&q, fifoBuffer);
-            mpu.dmpGetAccel(&aa, fifoBuffer);
-            mpu.dmpGetGravity(&gravity, &q);
-            mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
-            Serial.print("areal\t");
-            Serial.print(aaReal.x);
-            Serial.print("\t");
-            Serial.print(aaReal.y);
-            Serial.print("\t");
-            Serial.println(aaReal.z);
-        #endif
-
-        #ifdef OUTPUT_READABLE_WORLDACCEL
-            // display initial world-frame acceleration, adjusted to remove gravity
-            // and rotated based on known orientation from quaternion
-            mpu.dmpGetQuaternion(&q, fifoBuffer);
-            mpu.dmpGetAccel(&aa, fifoBuffer);
-            mpu.dmpGetGravity(&gravity, &q);
-            mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
-            mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
-            Serial.print("aworld\t");
-            Serial.print(aaWorld.x);
-            Serial.print("\t");
-            Serial.print(aaWorld.y);
-            Serial.print("\t");
-            Serial.println(aaWorld.z);
-        #endif
-    
-        #ifdef OUTPUT_TEAPOT
-            // display quaternion values in InvenSense Teapot demo format:
-            teapotPacket[2] = fifoBuffer[0];
-            teapotPacket[3] = fifoBuffer[1];
-            teapotPacket[4] = fifoBuffer[4];
-            teapotPacket[5] = fifoBuffer[5];
-            teapotPacket[6] = fifoBuffer[8];
-            teapotPacket[7] = fifoBuffer[9];
-            teapotPacket[8] = fifoBuffer[12];
-            teapotPacket[9] = fifoBuffer[13];
-            Serial.write(teapotPacket, 14);
-            teapotPacket[11]++; // packetCount, loops at 0xFF on purpose
-        #endif
-
         // blink LED to indicate activity
         blinkState = !blinkState;
         digitalWrite(LED_PIN, blinkState);
+
+    }
+
+    /*=========================================================
+    ======              GYROSCOPE VERIFICATION          =======
+    =========================================================*/
+
+    if (cycle_count < 400)
+    {
+        cycle_count = cycle_count + 1;
+    }
+
+    if (cycle_count == 200)
+    {
+        old_ypr0 = int (ypr[0] * 180/M_PI);
+        old_ypr1 = int (ypr[1] * 180/M_PI);
+        old_ypr2 = int (ypr[2] * 180/M_PI);
+    }
+
+    if (cycle_count == 400)
+    {
+        if (old_ypr1 - int (ypr[1] * 180/M_PI) == 0 && old_ypr2 - int (ypr[2] * 180/M_PI) == 0)
+        {
+            gyro_stable = true;
+            delay (2000);
+            cycle_count = cycle_count + 1;
+            Serial.println("gyro_stable = true");
+        }
+
+        else
+        {
+            cycle_count = 0;
+        }
     }
 }
