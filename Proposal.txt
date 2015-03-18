@@ -1,0 +1,14 @@
+﻿This research project describes the physical, mathematical and programming aspects of constructing an open-source and cost-effective autonomous multirotor control. 
+
+For production, we use open-source software to create algorithms necessary for flight and stabilization.  This, paired with cost-effective hardware choices, allowed us to create our quadcopter with a minimal budget.
+
+We implement an Arduino microcontroller as a primary device for bidirectional communication with the periphery devices, including the main rotors and the combination of a gyroscope and an accelerometer. 
+We program the Arduino using the C++ language in order to allow for the fast execution necessary to process the mathematical functions involved in the two-axis stabilization of a multirotor.
+
+We use a RaspberryPi microcomputer as a platform to perform the image-processing required for the automation of the multirotor system, allowing it to rely on the video input to navigate itself in space. The image-processing functionality is implemented using the OpenCV module for Python. 
+
+The communication between the RaspberryPi computer and the Arduino controller board is established through serial port.
+
+One of the methods utilized for writing the stabilization algorithm is the Proportionality Integral Derivative (PID) controller.  In order to achieve the level of precision in the stabilization of the multirotor, we study the theoretical physical concepts involved in the forces acting upon the system.
+
+In the development of our quadcopter, we use multiple disciplines to take into account the many factors during flight.  In addition, this allows for us to gain a broader learning experience in the process.
