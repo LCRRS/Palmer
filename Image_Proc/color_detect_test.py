@@ -16,8 +16,8 @@ area_frame_max = 125663
 source = cv2.VideoCapture(0)
 
 while(1):
-    kernel_open = np.ones((20,20),np.uint8) # Erosion values
-    kernel_close = np.ones((25,25),np.uint8) #Dilution values
+    kernel_open = np.ones((10,10),np.uint8) # Erosion values
+    kernel_close = np.ones((30,30),np.uint8) #Dilution values
     _, frame = source.read() # reads one frame at a time
 
     # Use this to get the resolution of the picture
@@ -27,8 +27,8 @@ while(1):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # define range of blue color in HSV
-    lower_blue = np.array([112,50,50])
-    upper_blue = np.array([130,255,255])
+    lower_blue = np.array([50,50,50])
+    upper_blue = np.array([70,255,255])
 
     # Threshold the HSV image to get only blue colors
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
@@ -52,18 +52,31 @@ while(1):
         center_obj = (int(x),int(y))
         radius_obj = int(radius_obj)
         cv2.circle(res,center_obj,radius_obj,(0,255,0),-1)
-        send_val = (str(int(center_obj[0])) + "\n")
 
         area_obj = ((radius_obj**2)*3.14159265359)
+
         if area_obj > area_frame:
             if area_obj > area_frame_max:
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 cv2.putText(res,'OOPS TOO CLOSE',(30,450), font, 2,(255,0,0),2)
+                distance = "0" # means that the object is way too close, thus needs to move further away
             else:
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 cv2.putText(res,'WARNING',(30,450), font, 2,(0,0,255),2)
+                distance = "1" # means safe distance: not too close but not too far
+        else:
+            distance = "2" #means that the object is still far away from the camera, thus needs to move closer
+
+        offset_hor = str(int(center_obj[0]) - 320)
+        offset_ver = str(int(center_obj[1]) - 240)
+        to_be_sent = [offset_hor,offset_ver,distance]
+
+        for i in to_be_sent:
+            print (i)
 
         # print (area, radius_obj)
+
+ser.write(send_val)
 
     cv2.imshow('res',res)
     cv2.imshow('frame',frame)
