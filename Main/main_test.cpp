@@ -1,13 +1,8 @@
 /*==========================================
-========       MAIN FILE      =========
+========       MAIN TEST FILE      =========
 ============================================
-=== Using this file does not output any  ===
-=== Serial readings for the benefit of   ===
-=== performance. If you want to receive  ===
-=== information any information while    ===
-=== the program executes - use the test  ===
-=== file.                                ===
-=== DO NOT FORGET TO UPDATE THE VALUES!  ===
+=== Use this file if you want to receive ===
+=== Serial readings of any sort.         ===
 ==========================================*/
 
 
@@ -201,6 +196,7 @@ void get_ypr()
     if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
         // reset so we can continue cleanly
         mpu.resetFIFO();
+        Serial.println(F("FIFO overflow!"));
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpuIntStatus & 0x02) {
@@ -271,8 +267,15 @@ void setup()
 
     while (!Serial);
 
+    // initialize device
+    Serial.println(F("Initializing I2C devices..."));
     mpu.initialize();
 
+    // verify connection
+    Serial.println(F("Testing device connections..."));
+    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+
+    Serial.println(F("Initializing DMP..."));
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
@@ -284,20 +287,35 @@ void setup()
     // make sure it worked (returns 0 if so)
     if (devStatus == 0)
     {
+        // turn on the DMP, now that it's ready
+        Serial.println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
         // enable Arduino interrupt detection
+        Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+
         attachInterrupt(0, dmpDataReady, RISING);
 
         mpuIntStatus = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
+        Serial.println(F("DMP ready! Waiting for first interrupt..."));
         dmpReady = true;
 
         // get expected DMP packet size for later comparison
         packetSize = mpu.dmpGetFIFOPacketSize();
     }
 
+    else
+    {
+        // ERROR!
+        // 1 = initial memory load failed
+        // 2 = DMP configuration updates failed
+        // (if it's going to break, usually the code will be 1)
+        Serial.print(F("DMP Initialization failed (code "));
+        Serial.print(devStatus);
+        Serial.println(F(")"));
+    }
     myPID_yaw.SetMode(AUTOMATIC);
     myPID_roll.SetMode(AUTOMATIC);
     myPID_pitch.SetMode(AUTOMATIC);
@@ -322,6 +340,7 @@ void loop() {
         myPID_pitch.Compute();
         myPID_roll.Compute();
 
+
         speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw;
         speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw;
         speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw;
@@ -333,4 +352,14 @@ void loop() {
         indivSpeed(myservo4, speed_myservo4);
 
     }
+    get_ypr();
+    Serial.print("ypr0 =   ");
+    Serial.print(ypr0);
+    Serial.print("  ypr1 =   ");
+    Serial.print(ypr1);
+    Serial.print("  ypr2 =   ");
+    Serial.print(ypr2);
+    Serial.print("  acceleration =   ");
+    Serial.println(accel_x);
+
 }

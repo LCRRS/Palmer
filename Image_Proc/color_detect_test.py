@@ -76,7 +76,7 @@ while(1):
 
         # print (area, radius_obj)
 
-ser.write(send_val)
+    #ser.write(send_val)
 
     cv2.imshow('res',res)
     cv2.imshow('frame',frame)
