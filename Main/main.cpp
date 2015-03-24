@@ -56,8 +56,20 @@
 #define OUTPUT_READABLE_WORLDACCEL
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1800
+#define START_SPEED 1750
 #define SAMPLE_TIME 25
+
+#define KP_PR 4.0
+#define KI_PR 0.2
+#define KD_PR 2.0
+#define KP_YAW 2.0
+#define KI_YAW 0.0
+#define KD_YAW 0.7
+
+#define LOWER_LIMIT_YAW -30
+#define UPPER_LIMIT_YAW 30
+#define LOWER_LIMIT_PR -120   // The lowest possible output that the PID can produce
+#define UPPER_LIMIT_PR 120 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
 MPU6050 mpu;
 
@@ -105,16 +117,9 @@ double pid_input_yaw, pid_output_yaw;
 double pid_input_pitch, pid_output_pitch;
 double pid_input_roll, pid_output_roll;   // PID containers to hold the gyroscope reading and the correction output respectively
 
-double Kp_yaw = 2.0, Ki_yaw = 0.0, Kd_yaw = 0.7;
-double Kp_pitch = 5.0, Ki_pitch = 0.2, Kd_pitch = 2.5;
-double Kp_roll = 5.0, Ki_roll = 0.2, Kd_roll = 2.5;     // Constant PID values determined experimentally through trial and error
-
-double lower_limit_yaw = -30;
-double upper_limit_yaw = 30;
-double lower_limit_pitch = -120;
-double upper_limit_pitch = 120;
-double lower_limit_roll = -120;   // The lowest possible output that the PID can produce
-double upper_limit_roll = 120; // The maximum possible output that the PID can produce (anything higher will be set back to this value)
+double Kp_yaw = KP_YAW, Ki_yaw = KI_YAW, Kd_yaw = KD_YAW;
+double Kp_pitch = KP_PR, Ki_pitch = KI_PR, Kd_pitch = KD_PR;
+double Kp_roll = KP_PR, Ki_roll = KI_PR, Kd_roll = KD_PR;     // Constant PID values determined experimentally through trial and error
 
 PID myPID_yaw(&pid_input_yaw, &pid_output_yaw, &pid_setPoint, Kp_yaw, Ki_yaw, Kd_yaw, DIRECT);
 PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint, Kp_pitch, Ki_pitch, Kd_pitch, DIRECT);
@@ -126,9 +131,9 @@ PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint, Kp_roll, Ki_rol
 
 void warmup()
 {
-    myPID_yaw.SetOutputLimits(lower_limit_yaw, upper_limit_yaw);
-    myPID_pitch.SetOutputLimits(lower_limit_pitch, upper_limit_pitch);
-    myPID_roll.SetOutputLimits(lower_limit_roll, upper_limit_roll);
+    myPID_yaw.SetOutputLimits(LOWER_LIMIT_YAW, UPPER_LIMIT_YAW);
+    myPID_pitch.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
+    myPID_roll.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
 
     myPID_yaw.SetSampleTime(SAMPLE_TIME); //Time to pass between the values of PID are recomputed (in milliseconds)
     myPID_pitch.SetSampleTime(SAMPLE_TIME);
@@ -271,8 +276,15 @@ void setup()
 
     while (!Serial);
 
+    // initialize device
+    Serial.println(F("Initializing I2C devices..."));
     mpu.initialize();
 
+    // verify connection
+    Serial.println(F("Testing device connections..."));
+    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+
+    Serial.println(F("Initializing DMP..."));
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
@@ -284,20 +296,35 @@ void setup()
     // make sure it worked (returns 0 if so)
     if (devStatus == 0)
     {
+        // turn on the DMP, now that it's ready
+        Serial.println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
         // enable Arduino interrupt detection
+        Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+
         attachInterrupt(0, dmpDataReady, RISING);
 
         mpuIntStatus = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
+        Serial.println(F("DMP ready! Waiting for first interrupt..."));
         dmpReady = true;
 
         // get expected DMP packet size for later comparison
         packetSize = mpu.dmpGetFIFOPacketSize();
     }
 
+    else
+    {
+        // ERROR!
+        // 1 = initial memory load failed
+        // 2 = DMP configuration updates failed
+        // (if it's going to break, usually the code will be 1)
+        Serial.print(F("DMP Initialization failed (code "));
+        Serial.print(devStatus);
+        Serial.println(F(")"));
+    }
     myPID_yaw.SetMode(AUTOMATIC);
     myPID_roll.SetMode(AUTOMATIC);
     myPID_pitch.SetMode(AUTOMATIC);

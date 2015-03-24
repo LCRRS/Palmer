@@ -3,6 +3,7 @@
 #===============================================================
 
 import cv2
+import cv2.cv as cv
 import numpy as np
 import serial
 import sys
@@ -14,6 +15,10 @@ radius_frame_max = (200)
 area_frame_max = 125663
 
 source = cv2.VideoCapture(0)
+
+#Set the camera resolution (if supported by your particular camera)
+source.set(cv.CV_CAP_PROP_FRAME_WIDTH,320);
+source.set(cv.CV_CAP_PROP_FRAME_HEIGHT,240);
 
 while(1):
     kernel_open = np.ones((10,10),np.uint8) # Erosion values
@@ -27,8 +32,8 @@ while(1):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # define range of blue color in HSV
-    lower_blue = np.array([50,50,50])
-    upper_blue = np.array([70,255,255])
+    lower_blue = np.array([70,50,50])
+    upper_blue = np.array([90,255,255])
 
     # Threshold the HSV image to get only blue colors
     mask = cv2.inRange(hsv, lower_blue, upper_blue)

@@ -1,27 +1,9 @@
 #===============================================================
 #===============         COLOR TRACKING          ===============
 #===============================================================
-#====== The Color Tracking algorithm is written to      ========
-#====== provide a multirotor drone real-time            ========
-#====== image-processing abilities through serial       ========
-#====== communication between RaspberryPi, responsible  ========
-#====== for image processing and offset calculation,    ========
-#====== and Arduino, serving as the primary flight      ========
-#======                     controller                  ========
-#===============================================================
-#====== The color Detection System is written in Python ========
-#====== using the OpenCV module as a base. The program  ========
-#====== isolates large objects of specific color and    ========
-#====== supplies information - horizontal and vertical  ========
-#====== position respectful of the frame center as a    ========
-#====== list of string objects through the serial port  ========
-#====== to the Arduino. The third object in the list is ========
-#====== the approximation of the distance dependant on  ========
-#====== the area of the object that is been tracked as  ========
-#======             it appears in the camera            ========
-#===============================================================
 
 import cv2
+import cv2.cv as cv
 import numpy as np
 import serial
 import sys
@@ -35,6 +17,11 @@ radius_frame_max = (200)    # The maximum desired radius of the object being tra
 area_frame_max = 125663     # The maximum desired area of the object being tracked
 
 source = cv2.VideoCapture(0)
+
+#Set the camera resolution (if supported by your particular camera)
+source.set(cv.CV_CAP_PROP_FRAME_WIDTH,320);
+source.set(cv.CV_CAP_PROP_FRAME_HEIGHT,240);
+
 while(1):
     kernel_open = np.ones((10,10),np.uint8)     # Erosion values
     kernel_close = np.ones((30,30),np.uint8)    # Dilution values
