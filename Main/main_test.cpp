@@ -112,13 +112,9 @@ double pid_input_yaw, pid_output_yaw;
 double pid_input_pitch, pid_output_pitch;
 double pid_input_roll, pid_output_roll;   // PID containers to hold the gyroscope reading and the correction output respectively
 
-double Kp_yaw = KP_YAW, Ki_yaw = KI_YAW, Kd_yaw = KD_YAW;
-double Kp_pitch = KP_PR, Ki_pitch = KI_PR, Kd_pitch = KD_PR;
-double Kp_roll = KP_PR, Ki_roll = KI_PR, Kd_roll = KD_PR;      // Constant PID values determined experimentally through trial and error
-
-PID myPID_yaw(&pid_input_yaw, &pid_output_yaw, &pid_setPoint, Kp_yaw, Ki_yaw, Kd_yaw, DIRECT);
-PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint, Kp_pitch, Ki_pitch, Kd_pitch, DIRECT);
-PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint, Kp_roll, Ki_roll, Kd_roll, DIRECT);        //PID class object that is associated with respected variables for the roll plane
+PID myPID_yaw(&pid_input_yaw, &pid_output_yaw, &pid_setPoint, KP_YAW, KI_YAW, KD_YAW, DIRECT);
+PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint, KP_PR, KI_PR, KD_PR, DIRECT);
+PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint, KP_PR, KI_PR, KD_PR, DIRECT);      //PID class object that is associated with respected variables for the roll plane
 
 /*============================================================
 ===============         WARM-UP ROUTINE       ================
