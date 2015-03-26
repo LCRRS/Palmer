@@ -8,21 +8,26 @@ import numpy as np
 import serial
 import sys
 
-center_frame = (320,240)
-radius_frame = (140)
-area_frame = 61575
-radius_frame_max = (200)
-area_frame_max = 125663
+center_frame = (88,72)
+radius_frame = (40)
+area_frame = 5027
+radius_frame_max = (60)
+area_frame_max = 11310
+size = (240, 180)
+
+pid_hor = 1
+pid_ver = 1
+pid_dis = 0.01
 
 source = cv2.VideoCapture(0)
 
-#Set the camera resolution (if supported by your particular camera)
-source.set(cv.CV_CAP_PROP_FRAME_WIDTH,320);
-source.set(cv.CV_CAP_PROP_FRAME_HEIGHT,240);
+ret = source.set(cv.CV_CAP_PROP_FRAME_WIDTH,size[0])
+ret = source.set(cv.CV_CAP_PROP_FRAME_HEIGHT,size[1])
+source.set(5,1)
 
 while(1):
-    kernel_open = np.ones((10,10),np.uint8) # Erosion values
-    kernel_close = np.ones((30,30),np.uint8) #Dilution values
+    kernel_open = np.ones((5,5),np.uint8, 5) # Erosion values
+    kernel_close = np.ones((5,5),np.uint8, 5) #Dilution values
     _, frame = source.read() # reads one frame at a time
 
     # Use this to get the resolution of the picture
@@ -32,8 +37,8 @@ while(1):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # define range of blue color in HSV
-    lower_blue = np.array([70,50,50])
-    upper_blue = np.array([90,255,255])
+    lower_blue = np.array([40,50,50])
+    upper_blue = np.array([75,255,255])
 
     # Threshold the HSV image to get only blue colors
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
@@ -72,8 +77,8 @@ while(1):
         else:
             distance = "2" #means that the object is still far away from the camera, thus needs to move closer
 
-        offset_hor = str(int(center_obj[0]) - 320)
-        offset_ver = str(int(center_obj[1]) - 240)
+        offset_hor = ((str(int(center_obj[0]) - center_frame[0])*pid_hor)+"\n")
+        offset_ver = ((str(int(center_obj[1]) - center_frame[1])*pid_ver)+"\n")
         to_be_sent = [offset_hor,offset_ver,distance]
 
         for i in to_be_sent:

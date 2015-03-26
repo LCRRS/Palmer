@@ -60,7 +60,7 @@
 #define START_SPEED 1750
 #define SAMPLE_TIME 25
 
-#define KP_PR 4.0
+#define KP_PR 5.0
 #define KI_PR 0.2
 #define KD_PR 2.0
 #define KP_YAW 2.0

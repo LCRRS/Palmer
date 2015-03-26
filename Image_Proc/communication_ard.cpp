@@ -1,20 +1,40 @@
-int led1 = 8;
-int led2 = 9;
-int led3 = 10;
-int led4 = 11;
-int led5 = 12;
-int new_val;
+/* Stepper Copal
+ * -------------
+ *
+ * Program to drive a stepper motor coming from a 5'25 disk drive
+ * according to the documentation I found, this stepper: "[...] motor
+ * made by Copal Electronics, with 1.8 degrees per step and 96 ohms
+ * per winding, with center taps brought out to separate leads [...]"
+ * [http://www.cs.uiowa.edu/~jones/step/example.html]
+ *
+ * It is a unipolar stepper motor with 5 wires:
+ *
+ * - red: power connector, I have it at 5V and works fine
+ * - orange and black: coil 1
+ * - brown and yellow: coil 2
+ *
+ * (cleft) 2005 DojoDave for K3
+ * http://www.0j0.org | http://arduino.berlios.de
+ *
+ * @author: David Cuartielles
+ * @date: 20 Oct. 2005
+ */
 
-void setup() {
-  pinMode(led1, OUTPUT);
-  pinMode(led2, OUTPUT);
-  pinMode(led3, OUTPUT);
-  pinMode(led4, OUTPUT);
-  pinMode(led5, OUTPUT);
-  Serial.begin(9600);
-}
+int motorPin1 = 9;
+int motorPin2 = 10;
+int motorPin3 = 11;
+int motorPin4 = 12;
+int delayTime = 0;
 
 int pi_data[3];
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(motorPin1, OUTPUT);
+  pinMode(motorPin2, OUTPUT);
+  pinMode(motorPin3, OUTPUT);
+  pinMode(motorPin4, OUTPUT);
+}
 
 void serial_read() {
     if (Serial.parseInt() == 31415)
@@ -26,70 +46,74 @@ void serial_read() {
 
         }
     }
+}
+void forward()
+{
+    digitalWrite(motorPin1, HIGH);
+    digitalWrite(motorPin2, LOW);
+    digitalWrite(motorPin3, LOW);
+    digitalWrite(motorPin4, LOW);
+    delay(delayTime);
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, HIGH);
+    digitalWrite(motorPin3, LOW);
+    digitalWrite(motorPin4, LOW);
+    delay(delayTime);
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, LOW);
+    digitalWrite(motorPin3, HIGH);
+    digitalWrite(motorPin4, LOW);
+    delay(delayTime);
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, LOW);
+    digitalWrite(motorPin3, LOW);
+    digitalWrite(motorPin4, HIGH);
+    delay(delayTime);
+}
 
-    Serial.print("New set:  ");
-    for (int z; z < 3; z++)
-    {
-        Serial.print(pi_data[z]);
-        Serial.print("    ");
-    }
-    Serial.println();
+void backward()
+{
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, LOW);
+    digitalWrite(motorPin3, LOW);
+    digitalWrite(motorPin4, HIGH);
+    delay(delayTime);
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, LOW);
+    digitalWrite(motorPin3, HIGH);
+    digitalWrite(motorPin4, LOW);
+    delay(delayTime);
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, HIGH);
+    digitalWrite(motorPin3, LOW);
+    digitalWrite(motorPin4, LOW);
+    delay(delayTime);
+    digitalWrite(motorPin1, HIGH);
+    digitalWrite(motorPin2, LOW);
+    digitalWrite(motorPin3, LOW);
+    digitalWrite(motorPin4, LOW);
+    delay(delayTime);
 }
 
 void loop() {
+
     serial_read();
-
-
-    if (pi_data[1] == 0)
+    if (pi_data[0] == 0)
     {
-        digitalWrite(led1,LOW);
-        digitalWrite(led2,LOW);
-        digitalWrite(led3,LOW);
-        digitalWrite(led4,LOW);
-        digitalWrite(led5,LOW);
+        digitalWrite(motorPin1,LOW);
+        digitalWrite(motorPin2,LOW);
+        digitalWrite(motorPin3,LOW);
+        digitalWrite(motorPin4,LOW);
     }
-    if (pi_data[1] != 0)
+    if (pi_data[0] != 0)
     {
-        if (pi_data[1] >= 512)
+        if (pi_data[0] < 0)
         {
-            digitalWrite(led1, HIGH);
-            digitalWrite(led2,LOW);
-            digitalWrite(led3,LOW);
-            digitalWrite(led4,LOW);
-            digitalWrite(led5,LOW);
+            backward();
         }
-        if (pi_data[1] >= 384 && pi_data[1] < 512)
+        if (pi_data[0] > 0)
         {
-            digitalWrite(led2, HIGH);
-            digitalWrite(led1,LOW);
-            digitalWrite(led3,LOW);
-            digitalWrite(led4,LOW);
-            digitalWrite(led5,LOW);
-        }
-        if (pi_data[1] >= 256 && pi_data[1] < 384)
-        {
-            digitalWrite(led3, HIGH);
-            digitalWrite(led2,LOW);
-            digitalWrite(led1,LOW);
-            digitalWrite(led4,LOW);
-            digitalWrite(led5,LOW);
-        }
-        if (pi_data[1] >= 128 && pi_data[1] < 256)
-        {
-            digitalWrite(led4, HIGH);
-            digitalWrite(led2,LOW);
-            digitalWrite(led3,LOW);
-            digitalWrite(led1,LOW);
-            digitalWrite(led5,LOW);
-        }
-        if (pi_data[1] < 128)
-        {
-            digitalWrite(led5, HIGH);
-            digitalWrite(led2,LOW);
-            digitalWrite(led3,LOW);
-            digitalWrite(led4,LOW);
-            digitalWrite(led1,LOW);
+            forward();
         }
     }
-
 }

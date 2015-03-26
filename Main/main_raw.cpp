@@ -1,8 +1,13 @@
 /*==========================================
-========       MAIN TEST FILE      =========
+========       MAIN FILE      =========
 ============================================
-=== Use this file if you want to receive ===
-=== Serial readings of any sort.         ===
+=== Using this file does not output any  ===
+=== Serial readings for the benefit of   ===
+=== performance. If you want to receive  ===
+=== information any information while    ===
+=== the program executes - use the test  ===
+=== file.                                ===
+=== DO NOT FORGET TO UPDATE THE VALUES!  ===
 ==========================================*/
 
 
@@ -64,7 +69,7 @@
 
 #define LOWER_LIMIT_YAW -30
 #define UPPER_LIMIT_YAW 30
-#define LOWER_LIMIT_PR -120  // The lowest possible output that the PID can produce
+#define LOWER_LIMIT_PR -120   // The lowest possible output that the PID can produce
 #define UPPER_LIMIT_PR 120 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
 MPU6050 mpu;
@@ -93,7 +98,7 @@ VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];
 
-bool initiation_count = false; // used to initiate motor start/warmup routine inside the loop function only once
+bool initiation_count = false; // Used to initiate motor start/warmup routine inside the loop function only once
 
 float ypr0;
 float ypr1;
@@ -102,6 +107,24 @@ float ypr2;
 float accel_x;
 float accel_y;
 float accel_z;
+
+int pi_data[3]; // [horizontal, vertical, distance] container of the offset from the raspberry pi
+
+/*=================================================
+=================== SERIAL READ ===================
+=================================================*/
+
+void serial_read() {
+    if (Serial.parseInt() == 31415)
+    {
+        for (int i; i < 3; i++)
+        {
+            int new_val = Serial.parseInt();
+            pi_data[i] = new_val;
+
+        }
+    }
+}
 
 /*=================================================
 ================= PID CONTROLLER ==================
@@ -115,7 +138,7 @@ double pid_input_roll, pid_output_roll;   // PID containers to hold the gyroscop
 
 PID myPID_yaw(&pid_input_yaw, &pid_output_yaw, &pid_setPoint, KP_YAW, KI_YAW, KD_YAW, DIRECT);
 PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint, KP_PR, KI_PR, KD_PR, DIRECT);
-PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint, KP_PR, KI_PR, KD_PR, DIRECT);      //PID class object that is associated with respected variables for the roll plane
+PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint, KP_PR, KI_PR, KD_PR, DIRECT);        //PID class object that is associated with respected variables for the roll plane
 
 /*============================================================
 ===============         WARM-UP ROUTINE       ================
@@ -198,7 +221,6 @@ void get_ypr()
     if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
         // reset so we can continue cleanly
         mpu.resetFIFO();
-        Serial.println(F("FIFO overflow!"));
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpuIntStatus & 0x02) {
@@ -331,6 +353,7 @@ void loop() {
     if (millis() > 50000 && !mpuInterrupt && fifoCount < packetSize)
     {
         warmup();
+        serial_read();
 
         /*=============================================
         ======          AIR STABILIZATION        ======
@@ -342,11 +365,10 @@ void loop() {
         myPID_pitch.Compute();
         myPID_roll.Compute();
 
-
-        speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw;
-        speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw;
-        speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw;
-        speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw;
+        speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw + pi_data[1];
+        speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw + pi_data[1];
+        speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw + pi_data[1];
+        speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw + pi_data[1];
 
         indivSpeed(myservo1, speed_myservo1);
         indivSpeed(myservo2, speed_myservo2);
@@ -354,14 +376,4 @@ void loop() {
         indivSpeed(myservo4, speed_myservo4);
 
     }
-    get_ypr();
-    Serial.print("ypr0 =   ");
-    Serial.print(ypr0);
-    Serial.print("  ypr1 =   ");
-    Serial.print(ypr1);
-    Serial.print("  ypr2 =   ");
-    Serial.print(ypr2);
-    Serial.print("  acceleration =   ");
-    Serial.println(accel_x);
-
 }
