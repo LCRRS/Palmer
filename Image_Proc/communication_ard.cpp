@@ -41,7 +41,7 @@ void serial_read() {
     {
         for (int i; i < 3; i++)
         {
-            int new_val = Serial.parseInt();
+            int new_val = Serial.parseFloat();
             pi_data[i] = new_val;
 
         }
