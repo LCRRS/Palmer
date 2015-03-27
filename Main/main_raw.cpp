@@ -356,7 +356,7 @@ void loop() {
     {
         warmup();
         serial_read();
-        pid_setPoint_yaw = pi_data[0]; //if an object is being tracked sets the new pid target value
+        pid_setPoint_yaw = ypr0 + pi_data[0]; //if an object is being tracked sets the new pid target value
         pid_setPoint_pitch = pi_data[2];
         pid_setPoint_roll = pi_data[2];
 
