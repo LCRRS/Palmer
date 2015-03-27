@@ -119,10 +119,10 @@ void serial_read() {
     {
         for (int i; i < 3; i++)
         {
-            int new_val = Serial.parseInt();
+            int new_val = Serial.parseFloat();
             pi_data[i] = new_val;
-
         }
+
     }
 }
 
@@ -130,15 +130,17 @@ void serial_read() {
 ================= PID CONTROLLER ==================
 =================================================*/
 
-double pid_setPoint = 0;    // The desired value of the gyroscope. PID produces as an output until the value is reached
+double pid_setPoint_yaw = 0;    // The desired value of the gyroscope. PID produces as an output until the value is reached
+double pid_setPoint_pitch = 0;
+double pid_setPoint_roll = 0;
 
 double pid_input_yaw, pid_output_yaw;
 double pid_input_pitch, pid_output_pitch;
 double pid_input_roll, pid_output_roll;   // PID containers to hold the gyroscope reading and the correction output respectively
 
-PID myPID_yaw(&pid_input_yaw, &pid_output_yaw, &pid_setPoint, KP_YAW, KI_YAW, KD_YAW, DIRECT);
-PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint, KP_PR, KI_PR, KD_PR, DIRECT);
-PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint, KP_PR, KI_PR, KD_PR, DIRECT);        //PID class object that is associated with respected variables for the roll plane
+PID myPID_yaw(&pid_input_yaw, &pid_output_yaw, &pid_setPoint_yaw, KP_YAW, KI_YAW, KD_YAW, DIRECT);
+PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint_pitch, KP_PR, KI_PR, KD_PR, DIRECT);
+PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint_roll, KP_PR, KI_PR, KD_PR, DIRECT);        //PID class object that is associated with respected variables for the roll plane
 
 /*============================================================
 ===============         WARM-UP ROUTINE       ================
@@ -354,6 +356,9 @@ void loop() {
     {
         warmup();
         serial_read();
+        pid_setPoint_yaw = pi_data[0]; //if an object is being tracked sets the new pid target value
+        pid_setPoint_pitch = pi_data[2];
+        pid_setPoint_roll = pi_data[2];
 
         /*=============================================
         ======          AIR STABILIZATION        ======
@@ -361,9 +366,12 @@ void loop() {
         pid_input_yaw = ypr0;
         pid_input_pitch = ypr1;
         pid_input_roll = ypr2;
-        myPID_yaw.Compute();
-        myPID_pitch.Compute();
-        myPID_roll.Compute();
+        myPID_yaw.Compute(&pid_setPoint_yaw);
+        myPID_pitch.Compute(&pid_setPoint_pitch);
+        myPID_roll.Compute(&pid_setPoint_roll);
+
+        // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
+        // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
 
         speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw + pi_data[1];
         speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw + pi_data[1];
