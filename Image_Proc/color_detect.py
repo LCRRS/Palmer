@@ -11,11 +11,11 @@ import sys
 serial_port = serial.Serial('/dev/ttyACM0', 115200) # Ports might be different depending on the setup being used
 
 center_frame = (88,72)    # The (x,y) coordinates of the center of the frame with the resolution 640*480
-radius_frame = (40)        # The minimum desired radius of the object being tracked
-area_frame = 5027          # The desired area of the object that is being tracked
-radius_frame_max = (60)    # The maximum desired radius of the object being tracked
-area_frame_max = 11310    # The maximum desired area of the object being tracked
-size = (240, 180)
+radius_frame = (30)        # The minimum desired radius of the object being tracked
+area_frame = 2827          # The desired area of the object that is being tracked
+radius_frame_max = (50)    # The maximum desired radius of the object being tracked
+area_frame_max = 7854   # The maximum desired area of the object being tracked
+size = (240, 180)         # The resolution of the camera
 
 source = cv2.VideoCapture(1)
 
@@ -35,8 +35,8 @@ while(1):
     # BGR to HSV conversion helps better isolate a single color
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    lower_blue = np.array([40,50,50])   # define range of green color in HSV
-    upper_blue = np.array([75,255,255])
+    lower_blue = np.array([30,50,50])   # define range of green color in HSV
+    upper_blue = np.array([80,255,255])
 
     # Threshold the HSV image to get only blue colors
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
@@ -81,8 +81,10 @@ while(1):
         else:
             distance = "2\n" #means that the object is still far away from the camera, thus needs to move closer
 
-        offset_hor = (str(int(center_obj[0]) - 88)+"\n")
-        offset_ver = (str(int(center_obj[1]) - 72)+"\n")
+        # Produces the new PID_yaw setpoint "-" corresponds to the CCW activation; "+" to the CW activation
+        offset_hor = (str((float(center_obj[0]) - center_frame[0])/3.52)+"\n")
+        # Alters the START_SPEED where "-" corresponds to the decrease in thrust and "+" to the increase in thrust
+        offset_ver = (str((float(center_frame[1]) - center_obj[1])*pid_ver)+"\n")\
         # The list of string objects that is sent to the Arduino.
         # The objects found are:
         # 1. Identification - used by the arduino to identify the first element
@@ -92,13 +94,13 @@ while(1):
         #       a. 0 - too close to the camera at which the drone should back up
         #       b. 1 - ideal position at which the drone should remain hovering
         #       c. 2 - too far away - the drone should keep moving towards the object
-        to_be_sent = ["31415\n", offset_hor, offset_ver, distance]
+        to_be_sent = ["31415.0\n", offset_hor, offset_ver, distance]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
             print(to_be_sent[i])
 
     else:
-        to_be_sent = ["31415\n", "0\n", "0\n", "0\n"]
+        to_be_sent = ["31415.0\n", "0.0\n", "0.0\n", "0.0\n"]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
             print(to_be_sent[i])

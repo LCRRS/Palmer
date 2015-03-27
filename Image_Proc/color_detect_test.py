@@ -2,28 +2,30 @@
 #====== COLOR DETECTION - NO COMMUNICATION WITH ARDUINO ========
 #===============================================================
 
+# Camera view angle - 50 degrees
+
 import cv2
 import cv2.cv as cv
 import numpy as np
 import serial
 import sys
 
-center_frame = (88,72)
-radius_frame = (40)
-area_frame = 5027
-radius_frame_max = (60)
-area_frame_max = 11310
-size = (240, 180)
+center_frame = (88,72)    # The (x,y) coordinates of the center of the frame with the resolution 640*480
+radius_frame = (10)        # The minimum desired radius of the object being tracked
+area_frame = 314          # The desired area of the object that is being tracked
+radius_frame_max = (25)    # The maximum desired radius of the object being tracked
+area_frame_max = 1964   # The maximum desired area of the object being tracked
+size = (240, 180)         # The resolution of the camera
 
 pid_hor = 1
-pid_ver = 1
+pid_ver = 0.3
 pid_dis = 0.01
 
-source = cv2.VideoCapture(0)
+source = cv2.VideoCapture(1)
 
 ret = source.set(cv.CV_CAP_PROP_FRAME_WIDTH,size[0])
 ret = source.set(cv.CV_CAP_PROP_FRAME_HEIGHT,size[1])
-source.set(5,1)
+#source.set(5,1)
 
 while(1):
     kernel_open = np.ones((5,5),np.uint8, 5) # Erosion values
@@ -31,14 +33,14 @@ while(1):
     _, frame = source.read() # reads one frame at a time
 
     # Use this to get the resolution of the picture
-    # print(frame.shape)
+    print(frame.shape)
 
     # BGR to HSV conversion helps better isolate a single color
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # define range of blue color in HSV
-    lower_blue = np.array([40,50,50])
-    upper_blue = np.array([75,255,255])
+    lower_blue = np.array([30,50,50])
+    upper_blue = np.array([80,255,255])
 
     # Threshold the HSV image to get only blue colors
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
@@ -69,16 +71,18 @@ while(1):
             if area_obj > area_frame_max:
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 cv2.putText(res,'OOPS TOO CLOSE',(30,450), font, 2,(255,0,0),2)
-                distance = "0" # means that the object is way too close, thus needs to move further away
+                distance = "0.0" # means that the object is way too close, thus needs to move further away
             else:
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 cv2.putText(res,'WARNING',(30,450), font, 2,(0,0,255),2)
-                distance = "1" # means safe distance: not too close but not too far
+                distance = "1.0" # means safe distance: not too close but not too far
         else:
-            distance = "2" #means that the object is still far away from the camera, thus needs to move closer
+            distance = "2.0" #means that the object is still far away from the camera, thus needs to move closer
 
-        offset_hor = ((str(int(center_obj[0]) - center_frame[0])*pid_hor)+"\n")
-        offset_ver = ((str(int(center_obj[1]) - center_frame[1])*pid_ver)+"\n")
+        # Produces the new PID_yaw setpoint "-" corresponds to the CCW activation; "+" to the CW activation
+        offset_hor = (str((float(center_obj[0]) - center_frame[0])/3.52)+"\n")
+        # Alters the START_SPEED where "-" corresponds to the decrease in thrust and "+" to the increase in thrust
+        offset_ver = (str((float(center_frame[1]) - center_obj[1])*pid_ver)+"\n")
         to_be_sent = [offset_hor,offset_ver,distance]
 
         for i in to_be_sent:
