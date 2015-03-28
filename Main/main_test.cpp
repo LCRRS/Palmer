@@ -338,7 +338,7 @@ void loop() {
         pid_input_yaw = ypr0;
         pid_input_pitch = ypr1;
         pid_input_roll = ypr2;
-        myPID_yaw.Compute();
+        myPID_yaw.Compute(&pid_setPoint);
         myPID_pitch.Compute();
         myPID_roll.Compute();
 

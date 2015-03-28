@@ -342,9 +342,9 @@ void loop() {
         pid_input_yaw = ypr0;
         pid_input_pitch = ypr1;
         pid_input_roll = ypr2;
-        myPID_yaw.Compute();
-        myPID_pitch.Compute();
-        myPID_roll.Compute();
+        myPID_yaw.Compute(&pid_setPoint);
+        myPID_pitch.Compute(&pid_setPoint);
+        myPID_roll.Compute(&pid_setPoint);
 
         speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw;
         speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw;
