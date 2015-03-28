@@ -36,6 +36,7 @@ while(1):
     # BGR to HSV conversion helps better isolate a single color
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
+    # Definition of Fifty Shades of Green
     lower_blue = np.array([30,50,50])   # define range of green color in HSV
     upper_blue = np.array([80,255,255])
 
@@ -64,13 +65,8 @@ while(1):
         area_obj = ((radius_obj**2)*3.14159265359)          # Area of the minimum circular enclosure
 
         # Distance comparison between the calculated area and the desired area
-        if area_obj > area_frame:
-            if area_obj > area_frame_max:
-                offset_dis = str(-30)+"\n" # means that the object is way too close, thus needs to move further away
-            else:
-                offset_dis = "0" # means safe distance: not too close but not too far
-        else:
-            offset_dis = (str(abs(int(area_obj - area_frame)*pid_dis))+"\n") #means that the object is still far away from the camera, thus needs to move closer
+
+        offset_dis = (str(6.573/(mt.tan(((radius_obj/3.52)*mt.pi)/180)))+"\n")
 
         # Produces the new PID_yaw setpoint "-" corresponds to the CCW activation; "+" to the CW activation
         # Value "3.52" is the number of degrees per pixel in the current camera resolution
@@ -86,13 +82,13 @@ while(1):
         #       a. 0 - too close to the camera at which the drone should back up
         #       b. 1 - ideal position at which the drone should remain hovering
         #       c. 2 - too far away - the drone should keep moving towards the object
-        to_be_sent = ["31415.0\n", offset_hor, offset_ver, offset_dis]
+        to_be_sent = ["31415.0\n", offset_hor, offset_ver, offset_dis, "0\n"]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
             print(to_be_sent[i])
 
     else:
-        to_be_sent = ["31415.0\n", "0.0\n", "0.0\n", "0.0\n"]
+        to_be_sent = ["31415.0\n", "0.0\n", "0.0\n", "0.0\n", "0\n"]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
             print(to_be_sent[i])

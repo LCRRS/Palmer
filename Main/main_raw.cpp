@@ -108,19 +108,24 @@ float accel_x;
 float accel_y;
 float accel_z;
 
-int pi_data[3]; // [horizontal, vertical, distance] container of the offset from the raspberry pi
+// Operation is used to signal the mode of flight that the quadcopter should switch to.
+// It can only be set values "0", meaning HOVER/DEFAULT or "1", meaning "TRACKING"
+int operation;
+
+int pi_data[5]; // [horizontal, vertical, distance] container of the offset from the raspberry pi
 
 /*=================================================
 =================== SERIAL READ ===================
 =================================================*/
 
 void serial_read() {
-    if (Serial.parseInt() == 31415)
+    if (Serial.parseFloat() == 31415.0)
     {
         for (int i; i < 3; i++)
         {
+            pi_data[0] = 31415.0;
             int new_val = Serial.parseFloat();
-            pi_data[i] = new_val;
+            pi_data[i+1] = new_val;
         }
 
     }
@@ -158,13 +163,17 @@ void warmup()
 
     while (!initiation_count)
     {
-        for (int speed = 1000; speed < START_SPEED; speed++)
+        serial_read();
+        if (pi_data[0] == 31415.0)
         {
-            setSpeed(speed);
-            delay(10);
+            for (int speed = 1000; speed < START_SPEED; speed++)
+            {
+                setSpeed(speed);
+                delay(10);
+            }
+            initiation_count = true;
+            setSpeed(START_SPEED);
         }
-        initiation_count = true;
-        setSpeed(START_SPEED);
     }
 }
 
@@ -348,6 +357,7 @@ void setup()
 }
 
 void loop() {
+
     // if programming failed, don't try to do anything
     if (!dmpReady) return;
 
@@ -355,33 +365,60 @@ void loop() {
     if (millis() > 50000 && !mpuInterrupt && fifoCount < packetSize)
     {
         warmup();
-        serial_read();
-        pid_setPoint_yaw = ypr0 + pi_data[0]; //if an object is being tracked sets the new pid target value
-        pid_setPoint_pitch = pi_data[2];
-        pid_setPoint_roll = pi_data[2];
+        if(initiation_count == true)
+        {
+            serial_read();
+            operation = pi_data[4];
 
-        /*=============================================
-        ======          AIR STABILIZATION        ======
-        =============================================*/
-        pid_input_yaw = ypr0;
-        pid_input_pitch = ypr1;
-        pid_input_roll = ypr2;
-        myPID_yaw.Compute(&pid_setPoint_yaw);
-        myPID_pitch.Compute(&pid_setPoint_pitch);
-        myPID_roll.Compute(&pid_setPoint_roll);
+            pid_setPoint_yaw = ypr0 + pi_data[1]; //if an object is being tracked sets the new pid target value
+            pid_setPoint_pitch = pi_data[3];
+            pid_setPoint_roll = pi_data[3];
 
-        // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
-        // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
+            /*=============================================
+            ======          AIR STABILIZATION        ======
+            =============================================*/
+            pid_input_yaw = ypr0;
+            pid_input_pitch = ypr1;
+            pid_input_roll = ypr2;
 
-        speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw + pi_data[1];
-        speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw + pi_data[1];
-        speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw + pi_data[1];
-        speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw + pi_data[1];
+            switch(operation)
+            {
+                case 0:
 
-        indivSpeed(myservo1, speed_myservo1);
-        indivSpeed(myservo2, speed_myservo2);
-        indivSpeed(myservo3, speed_myservo3);
-        indivSpeed(myservo4, speed_myservo4);
+                    if (compensation_count == 10)
+                    {
+                        myPID_yaw.Compute(&pid_setPoint_yaw);
+                        myPID_pitch.Compute(&pid_setPoint_pitch);
+                        myPID_roll.Compute(&pid_setPoint_roll);
 
+                        // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
+                        // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
+
+                        speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw;
+                        speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw;
+                        speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw;
+                        speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw;
+                    }
+                    break;
+                case 1:
+                    myPID_yaw.Compute(&pid_setPoint_yaw);
+                    myPID_pitch.Compute(&pid_setPoint_pitch);
+                    myPID_roll.Compute(&pid_setPoint_roll);
+
+                    // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
+                    // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
+
+                    speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw + pi_data[2];
+                    speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw + pi_data[2];
+                    speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw + pi_data[2];
+                    speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw + pi_data[2];
+                    break;
+            }
+
+            indivSpeed(myservo1, speed_myservo1);
+            indivSpeed(myservo2, speed_myservo2);
+            indivSpeed(myservo3, speed_myservo3);
+            indivSpeed(myservo4, speed_myservo4);
+        }
     }
 }

@@ -9,6 +9,7 @@ import cv2.cv as cv
 import numpy as np
 import serial
 import sys
+import math as mt
 
 center_frame = (88,72)    # The (x,y) coordinates of the center of the frame with the resolution 640*480
 radius_frame = (10)        # The minimum desired radius of the object being tracked
@@ -67,17 +68,8 @@ while(1):
 
         area_obj = ((radius_obj**2)*3.14159265359)
 
-        if area_obj > area_frame:
-            if area_obj > area_frame_max:
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(res,'OOPS TOO CLOSE',(30,450), font, 2,(255,0,0),2)
-                distance = "0.0" # means that the object is way too close, thus needs to move further away
-            else:
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(res,'WARNING',(30,450), font, 2,(0,0,255),2)
-                distance = "1.0" # means safe distance: not too close but not too far
-        else:
-            distance = "2.0" #means that the object is still far away from the camera, thus needs to move closer
+
+        distance = 6.573/(mt.tan(((radius_obj/3.52)*mt.pi)/180))
 
         # Produces the new PID_yaw setpoint "-" corresponds to the CCW activation; "+" to the CW activation
         offset_hor = (str((float(center_obj[0]) - center_frame[0])/3.52)+"\n")
