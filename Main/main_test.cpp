@@ -52,12 +52,12 @@
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1750
+#define START_SPEED 1700
 #define SAMPLE_TIME 25
 
 #define KP_PR 5.0
 #define KI_PR 0.2
-#define KD_PR 2.0
+#define KD_PR 2.5
 #define KP_YAW 2.0
 #define KI_YAW 0.0
 #define KD_YAW 0.7
@@ -339,8 +339,8 @@ void loop() {
         pid_input_pitch = ypr1;
         pid_input_roll = ypr2;
         myPID_yaw.Compute(&pid_setPoint);
-        myPID_pitch.Compute();
-        myPID_roll.Compute();
+        myPID_pitch.Compute(&pid_setPoint);
+        myPID_roll.Compute(&pid_setPoint);
 
 
         speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw;

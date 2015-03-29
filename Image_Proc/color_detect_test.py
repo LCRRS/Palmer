@@ -22,7 +22,7 @@ pid_hor = 1
 pid_ver = 0.3
 pid_dis = 0.01
 
-source = cv2.VideoCapture(1)
+source = cv2.VideoCapture(0)
 
 ret = source.set(cv.CV_CAP_PROP_FRAME_WIDTH,size[0])
 ret = source.set(cv.CV_CAP_PROP_FRAME_HEIGHT,size[1])
