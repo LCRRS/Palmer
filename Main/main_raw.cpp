@@ -79,7 +79,7 @@ Servo myservo2;
 Servo myservo3;
 Servo myservo4;
 
-double speed_myservo1, speed_myservo2, speed_myservo3, speed_myservo4;
+float speed_myservo1, speed_myservo2, speed_myservo3, speed_myservo4;
 
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
@@ -110,38 +110,39 @@ float accel_z;
 
 // Operation is used to signal the mode of flight that the quadcopter should switch to.
 // It can only be set values "0", meaning HOVER/DEFAULT or "1", meaning "TRACKING"
-int operation;
+float operation;
 
-int pi_data[5]; // [horizontal, vertical, distance] container of the offset from the raspberry pi
+float pi_data[5]; // [horizontal, vertical, distance] container of the offset from the raspberry pi
 
 /*=================================================
 =================== SERIAL READ ===================
 =================================================*/
 
 void serial_read() {
-    if (Serial.parseFloat() == 31415.0)
+    if (Serial.parseInt() == 314159)
     {
-        for (int i; i < 3; i++)
+        for (int i = 0; i < 5; i++)
         {
-            pi_data[0] = 31415.0;
-            int new_val = Serial.parseFloat();
-            pi_data[i+1] = new_val;
-        }
+            float new_val = (float(Serial.parseInt()))/10.0;
+            pi_data[i] = new_val;
 
+        }
+        pi_data[0] = 314159.0;
     }
+
 }
 
 /*=================================================
 ================= PID CONTROLLER ==================
 =================================================*/
 
-double pid_setPoint_yaw = 0;    // The desired value of the gyroscope. PID produces as an output until the value is reached
-double pid_setPoint_pitch = 0;
-double pid_setPoint_roll = 0;
+float pid_setPoint_yaw = 0;    // The desired value of the gyroscope. PID produces as an output until the value is reached
+float pid_setPoint_pitch = 0;
+float pid_setPoint_roll = 0;
 
-double pid_input_yaw, pid_output_yaw;
-double pid_input_pitch, pid_output_pitch;
-double pid_input_roll, pid_output_roll;   // PID containers to hold the gyroscope reading and the correction output respectively
+float pid_input_yaw, pid_output_yaw;
+float pid_input_pitch, pid_output_pitch;
+float pid_input_roll, pid_output_roll;   // PID containers to hold the gyroscope reading and the correction output respectively
 
 PID myPID_yaw(&pid_input_yaw, &pid_output_yaw, &pid_setPoint_yaw, KP_YAW, KI_YAW, KD_YAW, DIRECT);
 PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint_pitch, KP_PR, KI_PR, KD_PR, DIRECT);
@@ -164,7 +165,7 @@ void warmup()
     while (!initiation_count)
     {
         serial_read();
-        if (pi_data[0] == 31415.0)
+        if (pi_data[0] == 314159)
         {
             for (int speed = 1000; speed < START_SPEED; speed++)
             {
@@ -173,8 +174,10 @@ void warmup()
             }
             initiation_count = true;
             setSpeed(START_SPEED);
+            Serial.println("warmup");
         }
     }
+    Serial.println("warmup");
 }
 
 /*==============================================================
@@ -184,7 +187,7 @@ void warmup()
 ===                  to the same value                       ===
 ==============================================================*/
 
-void setSpeed(double speed)
+void setSpeed(float speed)
 {
     myservo1.writeMicroseconds(speed);
     myservo2.writeMicroseconds(speed);
@@ -200,7 +203,7 @@ void setSpeed(double speed)
 ===                 of stabilization routine                 ===
 ==============================================================*/
 
-void indivSpeed(Servo servo, double speed)
+void indivSpeed(Servo servo, float speed)
 {
     servo.writeMicroseconds(speed);
 }
@@ -354,15 +357,15 @@ void setup()
     myPID_yaw.SetMode(AUTOMATIC);
     myPID_roll.SetMode(AUTOMATIC);
     myPID_pitch.SetMode(AUTOMATIC);
+    mpu.setRate(0x09);
 }
 
 void loop() {
-
     // if programming failed, don't try to do anything
     if (!dmpReady) return;
 
     // wait for MPU interrupt or extra packet(s) available
-    if (millis() > 50000 && !mpuInterrupt && fifoCount < packetSize)
+    if (!mpuInterrupt && fifoCount < packetSize)
     {
         warmup();
         if(initiation_count == true)
@@ -381,44 +384,25 @@ void loop() {
             pid_input_pitch = ypr1;
             pid_input_roll = ypr2;
 
-            switch(operation)
-            {
-                case 0:
+            myPID_yaw.Compute();
+            myPID_pitch.Compute(&pid_setPoint_pitch);
+            myPID_roll.Compute(&pid_setPoint_roll);
 
-                    if (compensation_count == 10)
-                    {
-                        myPID_yaw.Compute(&pid_setPoint_yaw);
-                        myPID_pitch.Compute(&pid_setPoint_pitch);
-                        myPID_roll.Compute(&pid_setPoint_roll);
+            // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
+            // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
 
-                        // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
-                        // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
-
-                        speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw;
-                        speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw;
-                        speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw;
-                        speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw;
-                    }
-                    break;
-                case 1:
-                    myPID_yaw.Compute(&pid_setPoint_yaw);
-                    myPID_pitch.Compute(&pid_setPoint_pitch);
-                    myPID_roll.Compute(&pid_setPoint_roll);
-
-                    // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
-                    // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
-
-                    speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw + pi_data[2];
-                    speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw + pi_data[2];
-                    speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw + pi_data[2];
-                    speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw + pi_data[2];
-                    break;
-            }
+            speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw + pi_data[2];
+            speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw + pi_data[2];
+            speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw + pi_data[2];
+            speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw + pi_data[2];
 
             indivSpeed(myservo1, speed_myservo1);
             indivSpeed(myservo2, speed_myservo2);
             indivSpeed(myservo3, speed_myservo3);
             indivSpeed(myservo4, speed_myservo4);
+
+            Serial.print("Horizontal =  ");
         }
     }
+    get_ypr();
 }
