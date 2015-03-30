@@ -17,16 +17,17 @@
  *    The parameters specified here are those for for which we can't set up
  *    reliable defaults, so we need to have the user set them.
  ***************************************************************************/
-PID::PID(double* Input, double* Output, double* Setpoint,
-        double Kp, double Ki, double Kd, int ControllerDirection)
+PID::PID(float* Input, float* Output, float* Setpoint,
+        float Kp, float Ki, float Kd, int ControllerDirection)
 {
 
     myOutput = Output;
     myInput = Input;
     mySetpoint = Setpoint;
-	inAuto = false;
+    inAuto = false;
 
-	PID::SetOutputLimits(0, 255);				//default output limit corresponds to the arduino pwm limits
+    PID::SetOutputLimits(0, 255);				//default output limit corresponds to
+                                                //the arduino pwm limits
 
     SampleTime = 100;							//default Controller Sample Time is 0.1 seconds
 
@@ -52,15 +53,15 @@ bool PID::Compute()
     if(timeChange>=SampleTime)
     {
        /*Compute all the working error variables*/
-       double input = *myInput;
-       double error = *mySetpoint - input;
+       float input = *myInput;
+       float error = *mySetpoint - input;
        ITerm+= (ki * error);
        if(ITerm > outMax) ITerm= outMax;
        else if(ITerm < outMin) ITerm= outMin;
-       double dInput = (input - lastInput);
+       float dInput = (input - lastInput);
 
        /*Compute PID Output*/
-       double output = kp * error + ITerm- kd * dInput;
+       float output = kp * error + ITerm- kd * dInput;
 
        if(output > outMax) output = outMax;
        else if(output < outMin) output = outMin;
@@ -74,7 +75,7 @@ bool PID::Compute()
     else return false;
 }
 
-bool PID::Compute(double* newSetpoint)
+bool PID::Compute(float* newSetpoint)
 {
    if(!inAuto) return false;
    unsigned long now = millis();
@@ -82,15 +83,15 @@ bool PID::Compute(double* newSetpoint)
    if(timeChange>=SampleTime)
    {
       /*Compute all the working error variables*/
-      double input = *myInput;
-      double error = *newSetpoint - input;
+      float input = *myInput;
+      float error = *newSetpoint - input;
       ITerm+= (ki * error);
       if(ITerm > outMax) ITerm= outMax;
       else if(ITerm < outMin) ITerm= outMin;
-      double dInput = (input - lastInput);
+      float dInput = (input - lastInput);
 
       /*Compute PID Output*/
-      double output = kp * error + ITerm- kd * dInput;
+      float output = kp * error + ITerm- kd * dInput;
 
       if(output > outMax) output = outMax;
       else if(output < outMin) output = outMin;
@@ -110,13 +111,13 @@ bool PID::Compute(double* newSetpoint)
  * it's called automatically from the constructor, but tunings can also
  * be adjusted on the fly during normal operation
  ******************************************************************************/
-void PID::SetTunings(double Kp, double Ki, double Kd)
+void PID::SetTunings(float Kp, float Ki, float Kd)
 {
    if (Kp<0 || Ki<0 || Kd<0) return;
 
    dispKp = Kp; dispKi = Ki; dispKd = Kd;
 
-   double SampleTimeInSec = ((double)SampleTime)/1000;
+   float SampleTimeInSec = ((float)SampleTime)/1000;
    kp = Kp;
    ki = Ki * SampleTimeInSec;
    kd = Kd / SampleTimeInSec;
@@ -136,8 +137,8 @@ void PID::SetSampleTime(int NewSampleTime)
 {
    if (NewSampleTime > 0)
    {
-      double ratio  = (double)NewSampleTime
-                      / (double)SampleTime;
+      float ratio  = (float)NewSampleTime
+                      / (float)SampleTime;
       ki *= ratio;
       kd /= ratio;
       SampleTime = (unsigned long)NewSampleTime;
@@ -152,7 +153,7 @@ void PID::SetSampleTime(int NewSampleTime)
  *  want to clamp it from 0-125.  who knows.  at any rate, that can all be done
  *  here.
  **************************************************************************/
-void PID::SetOutputLimits(double Min, double Max)
+void PID::SetOutputLimits(float Min, float Max)
 {
    if(Min >= Max) return;
    outMin = Min;
@@ -160,11 +161,11 @@ void PID::SetOutputLimits(double Min, double Max)
 
    if(inAuto)
    {
-	   if(*myOutput > outMax) *myOutput = outMax;
-	   else if(*myOutput < outMin) *myOutput = outMin;
+       if(*myOutput > outMax) *myOutput = outMax;
+       else if(*myOutput < outMin) *myOutput = outMin;
 
-	   if(ITerm > outMax) ITerm= outMax;
-	   else if(ITerm < outMin) ITerm= outMin;
+       if(ITerm > outMax) ITerm= outMax;
+       else if(ITerm < outMin) ITerm= outMin;
    }
 }
 
@@ -205,7 +206,7 @@ void PID::SetControllerDirection(int Direction)
 {
    if(inAuto && Direction !=controllerDirection)
    {
-	  kp = (0 - kp);
+      kp = (0 - kp);
       ki = (0 - ki);
       kd = (0 - kd);
    }
@@ -217,8 +218,8 @@ void PID::SetControllerDirection(int Direction)
  * functions query the internal state of the PID.  they're here for display
  * purposes.  this are the functions the PID Front-end uses for example
  ******************************************************************************/
-double PID::GetKp(){ return  dispKp; }
-double PID::GetKi(){ return  dispKi;}
-double PID::GetKd(){ return  dispKd;}
+float PID::GetKp(){ return  dispKp; }
+float PID::GetKi(){ return  dispKi;}
+float PID::GetKd(){ return  dispKd;}
 int PID::GetMode(){ return  inAuto ? AUTOMATIC : MANUAL;}
 int PID::GetDirection(){ return controllerDirection;}
