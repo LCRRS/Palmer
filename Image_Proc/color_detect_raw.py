@@ -66,7 +66,7 @@ def PID_Compute(Kp, Kd, Upper_Limit, Lower_Limit, Set_Point, Pid_Input, Pid_Outp
 
 
 
-source = cv2.VideoCapture(0)
+source = cv2.VideoCapture(1)
 
 # Set the camera resolution (if supported by your particular camera)
 ret = source.set(cv.CV_CAP_PROP_FRAME_WIDTH,size[0])
@@ -121,9 +121,9 @@ while(1):
 
         # Produces the new PID_yaw setpoint "-" corresponds to the CCW activation; "+" to the CW activation
         # Value "3.52" is the number of degrees per pixel in the current camera resolution
-        offset_hor = (str(int((((center_obj[0]) - center_frame[0])/3.52)*100))+"\n")
+        offset_hor = (str(int((((center_obj[0]) - center_frame[0])/3.52)*10))+"\n")
         # Alters the START_SPEED where "-" corresponds to the decrease in thrust and "+" to the increase in thrust
-        offset_ver = (str(int((((center_frame[1]) - center_obj[1])*Kp_ver)*100))+"\n")
+        offset_ver = (str(int((((center_frame[1]) - center_obj[1])*Kp_ver)*10))+"\n")
         # The list of string objects that is sent to the Arduino.
         # The objects found are:
         # 1. Identification - used by the arduino to identify the first element
@@ -133,13 +133,13 @@ while(1):
         #       a. 0 - too close to the camera at which the drone should back up
         #       b. 1 - ideal position at which the drone should remain hovering
         #       c. 2 - too far away - the drone should keep moving towards the object
-        to_be_sent = ["314159265.0\n", offset_hor, offset_ver, offset_dis, "0\n"]
+        to_be_sent = ["314159.0\n", offset_hor, offset_ver, offset_dis, "1\n"]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
             print(to_be_sent[i])
 
     else:
-        to_be_sent = ["314159265.0\n", "0.0\n", "0.0\n", "0.0\n", "0\n"]
+        to_be_sent = ["314159.0\n", "0.0\n", "0.0\n", "0.0\n", "0\n"]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
             print(to_be_sent[i])
