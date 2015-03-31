@@ -22,7 +22,6 @@
 ==  The M#-P# represent the Arduino Pins ==
 ==  to which respective ESC is attached  ==
 ===========================================
-
                 yaw ---> +
           pitch -           roll +
             CW               CCW
@@ -41,7 +40,6 @@
           M4-P11           M3-P10
            CCW               CW
           roll -           pitch +
-
 ==========================================*/
 #include <PID_v1.h>
 #include <Servo.h>
@@ -111,7 +109,7 @@ float pi_data[4]; // [horizontal, vertical, distance] container of the offset fr
 =================================================*/
 
 void serial_read() {
-    if (Serial.read() == 01100001)
+    if (Serial.parseInt() == 301)
     {
         for (int i = 0; i < 4; i++)
         {
@@ -119,7 +117,7 @@ void serial_read() {
             pi_data[i] = new_val;
 
         }
-        pi_data[0] = 'a';
+        pi_data[0] = 301.0;
     }
 
 }
@@ -157,7 +155,7 @@ void warmup()
     while (!initiation_count)
     {
         serial_read();
-        if (pi_data[0] == 'a')
+        if (pi_data[0] == 301)
         {
             for (int speed = 1000; speed < START_SPEED; speed++)
             {
