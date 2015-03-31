@@ -338,7 +338,7 @@ void setup()
     bool cat = false;
     while(!cat) {
       serial_read();
-      if (pi_data[0] = 301.0) {
+      if (pi_data[0] == 301.0) {
       cat = true;
       }
     }
