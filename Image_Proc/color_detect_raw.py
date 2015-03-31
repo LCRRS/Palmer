@@ -22,15 +22,15 @@ radius_frame_max = (50)    # The maximum desired radius of the object being trac
 area_frame_max = 7854   # The maximum desired area of the object being tracked
 size = (240, 180)         # The resolution of the camera
 
-Kp_dist = 0.25                # Proportionality constant for the PID calculation of the Distance
-Kd_dist = 0.1                # Derivative constant for the PID calculation of Distance
+Kp_dist = 0.125                # Proportionality constant for the PID calculation of the Distance
+Kd_dist = 0.03                # Derivative constant for the PID calculation of Distance
 Upper_Limit_dist = 3.0       # Upper limit for the PID output of the distance correction
 Lower_Limit_dist = -3.0      # Lower limit for the PID output of the distance correction
 Setpoint_dist = 100          # The desired position of the quadcopter in centimeters
 PID_output_dist = 0
 first_calculation = None
 
-Kp_ver = 0.5
+Kp_ver = 0.125
 
 #=============================================
 #=============== PID FUNCTION ================
@@ -66,7 +66,7 @@ def PID_Compute(Kp, Kd, Upper_Limit, Lower_Limit, Set_Point, Pid_Input, Pid_Outp
 
 
 
-source = cv2.VideoCapture(1)
+source = cv2.VideoCapture(0)
 
 # Set the camera resolution (if supported by your particular camera)
 ret = source.set(cv.CV_CAP_PROP_FRAME_WIDTH,size[0])
@@ -133,16 +133,15 @@ while(1):
         #       a. 0 - too close to the camera at which the drone should back up
         #       b. 1 - ideal position at which the drone should remain hovering
         #       c. 2 - too far away - the drone should keep moving towards the object
-        to_be_sent = ["314159.0\n", offset_hor, offset_ver, offset_dis, "1\n"]
+        to_be_sent = ["314159.0\n", offset_hor, offset_ver, offset_dis]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
             print(to_be_sent[i])
 
     else:
-        to_be_sent = ["314159.0\n", "0.0\n", "0.0\n", "0.0\n", "0\n"]
+        to_be_sent = ["314159.0\n", "0.0\n", "0.0\n", "0.0\n"]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
-            print(to_be_sent[i])
 
     k = cv2.waitKey(5) & 0xFF
     if k == 27:

@@ -53,7 +53,6 @@
 #endif
 
 #define OUTPUT_READABLE_YAWPITCHROLL
-#define OUTPUT_READABLE_WORLDACCEL
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
@@ -61,7 +60,7 @@
 #define SAMPLE_TIME 25
 
 #define KP_PR 5.0
-#define KI_PR 0.2
+#define KI_PR 0.0
 #define KD_PR 2.0
 #define KP_YAW 2.0
 #define KI_YAW 0.0
@@ -88,9 +87,6 @@ uint8_t devStatus;      // return status after each device operation (0 = succes
 uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
 uint16_t fifoCount;     // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
-VectorInt16 aa;         // [x, y, z]            accel sensor measurements
-VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
-VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
 
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
@@ -104,15 +100,11 @@ float ypr0;
 float ypr1;
 float ypr2;
 
-float accel_x;
-float accel_y;
-float accel_z;
-
 // Operation is used to signal the mode of flight that the quadcopter should switch to.
 // It can only be set values "0", meaning HOVER/DEFAULT or "1", meaning "TRACKING"
 float operation;
 
-float pi_data[5]; // [horizontal, vertical, distance] container of the offset from the raspberry pi
+float pi_data[4]; // [horizontal, vertical, distance] container of the offset from the raspberry pi
 
 /*=================================================
 =================== SERIAL READ ===================
@@ -121,7 +113,7 @@ float pi_data[5]; // [horizontal, vertical, distance] container of the offset fr
 void serial_read() {
     if (Serial.parseInt() == 314159)
     {
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 4; i++)
         {
             float new_val = (float(Serial.parseInt()))/10.0;
             pi_data[i] = new_val;
@@ -174,10 +166,8 @@ void warmup()
             }
             initiation_count = true;
             setSpeed(START_SPEED);
-            Serial.println("warmup");
         }
     }
-    Serial.println("warmup");
 }
 
 /*==============================================================
@@ -255,20 +245,8 @@ void get_ypr()
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
             ypr0 = (ypr[0] * 180/M_PI);
-            ypr1 = (ypr[1] * 180/M_PI)-1.95;
-            ypr2 = (ypr[2] * 180/M_PI)-2.75;
-        #endif
-
-        #ifdef OUTPUT_READABLE_WORLDACCEL
-            // display initial world-frame acceleration, adjusted to remove gravity
-            // and rotated based on known orientation from quaternion
-            mpu.dmpGetAccel(&aa, fifoBuffer);
-            mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
-            mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
-
-            accel_x = aaWorld.x;
-            accel_y = aaWorld.y;
-            accel_z = aaWorld.z;
+            ypr1 = (ypr[1] * 180/M_PI)-2.27;
+            ypr2 = (ypr[2] * 180/M_PI)-2.02;
         #endif
     }
 }
@@ -371,12 +349,9 @@ void loop() {
         if(initiation_count == true)
         {
             serial_read();
-            operation = pi_data[4];
 
             pid_setPoint_yaw = ypr0 + pi_data[1]; //if an object is being tracked sets the new pid target value
-            pid_setPoint_pitch = pi_data[3];
-            pid_setPoint_roll = pi_data[3];
-
+            pid_setPoint_pitch = -pi_data[3];
             /*=============================================
             ======          AIR STABILIZATION        ======
             =============================================*/
@@ -384,7 +359,7 @@ void loop() {
             pid_input_pitch = ypr1;
             pid_input_roll = ypr2;
 
-            myPID_yaw.Compute();
+            myPID_yaw.Compute(&pid_setPoint_yaw);
             myPID_pitch.Compute(&pid_setPoint_pitch);
             myPID_roll.Compute(&pid_setPoint_roll);
 
@@ -400,8 +375,6 @@ void loop() {
             indivSpeed(myservo2, speed_myservo2);
             indivSpeed(myservo3, speed_myservo3);
             indivSpeed(myservo4, speed_myservo4);
-
-            Serial.print("Horizontal =  ");
         }
     }
     get_ypr();
