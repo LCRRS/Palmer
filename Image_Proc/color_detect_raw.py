@@ -133,13 +133,13 @@ while(1):
         #       a. 0 - too close to the camera at which the drone should back up
         #       b. 1 - ideal position at which the drone should remain hovering
         #       c. 2 - too far away - the drone should keep moving towards the object
-        to_be_sent = ["314159.0\n", offset_hor, offset_ver, offset_dis]
+        to_be_sent = ['a', offset_hor, offset_ver, offset_dis]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
             print(to_be_sent[i])
 
     else:
-        to_be_sent = ["314159.0\n", "0.0\n", "0.0\n", "0.0\n"]
+        to_be_sent = ['a', "0.0\n", "0.0\n", "0.0\n"]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
 
