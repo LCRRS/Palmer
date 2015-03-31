@@ -334,6 +334,14 @@ void setup()
     myPID_roll.SetMode(AUTOMATIC);
     myPID_pitch.SetMode(AUTOMATIC);
     mpu.setRate(0x09);
+    
+    bool cat = false;
+    while(!cat) {
+      serial_read();
+      if (pi_data[0] = 301.0) {
+      cat = true;
+      }
+    }
 }
 
 void loop() {
@@ -343,7 +351,6 @@ void loop() {
     // wait for MPU interrupt or extra packet(s) available
     if (!mpuInterrupt && fifoCount < packetSize)
     {
-        warmup();
         if(initiation_count == true)
         {
             serial_read();
