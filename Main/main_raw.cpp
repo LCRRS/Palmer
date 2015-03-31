@@ -157,7 +157,7 @@ void warmup()
     while (!initiation_count)
     {
         serial_read();
-        if (pi_data[0] == 314159)
+        if (pi_data[0] == 'a')
         {
             for (int speed = 1000; speed < START_SPEED; speed++)
             {
