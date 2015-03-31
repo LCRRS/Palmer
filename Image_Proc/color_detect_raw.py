@@ -42,7 +42,7 @@ def PID_Compute(Kp, Kd, Upper_Limit, Lower_Limit, Set_Point, Pid_Input, Pid_Outp
     if first_calculation == None:
         last_input = Pid_Input
         first_calculation = 0
-        #print ("last input is :     ", last_input)
+        print ("last input is :     ", last_input)
 
     # Setting the variables
     error = Set_Point - Pid_Input
@@ -50,10 +50,10 @@ def PID_Compute(Kp, Kd, Upper_Limit, Lower_Limit, Set_Point, Pid_Input, Pid_Outp
 
     #Computing the Output
     output = (error * Kp) + (d_input * Kd)
-    #print("Last input is :     ", last_input)
+    print("Last input is :     ", last_input)
     # Remember the last error for the next Kd calculation
     last_input = Pid_Input
-    #print ("Last input is :    ", last_input)
+    print ("Last input is :    ", last_input)
 
     if output > Upper_Limit:
         output = Upper_Limit
@@ -133,13 +133,13 @@ while(1):
         #       a. 0 - too close to the camera at which the drone should back up
         #       b. 1 - ideal position at which the drone should remain hovering
         #       c. 2 - too far away - the drone should keep moving towards the object
-        to_be_sent = ['a', offset_hor, offset_ver, offset_dis]
+        to_be_sent = ["301.0", offset_hor, offset_ver, offset_dis]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
-            #print(to_be_sent[i])
+            print(to_be_sent[i])
 
     else:
-        to_be_sent = ['a', "0.0\n", "0.0\n", "0.0\n"]
+        to_be_sent = ["301.0", "0.0\n", "0.0\n", "0.0\n"]
         for i in range(len(to_be_sent)):
             serial_port.write(to_be_sent[i])
 
