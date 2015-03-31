@@ -342,6 +342,7 @@ void setup()
       cat = true;
       }
     }
+    warmup();
 }
 
 void loop() {
