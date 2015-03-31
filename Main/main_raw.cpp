@@ -111,7 +111,7 @@ float pi_data[4]; // [horizontal, vertical, distance] container of the offset fr
 =================================================*/
 
 void serial_read() {
-    if (Serial.parseInt() == 314159)
+    if (Serial.read() == 01100001)
     {
         for (int i = 0; i < 4; i++)
         {
@@ -119,7 +119,7 @@ void serial_read() {
             pi_data[i] = new_val;
 
         }
-        pi_data[0] = 314159.0;
+        pi_data[0] = 'a';
     }
 
 }
