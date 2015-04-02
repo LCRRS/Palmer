@@ -17,12 +17,12 @@ radius_frame_max = (50)    # The maximum desired radius of the object being trac
 area_frame_max = 7854   # The maximum desired area of the object being tracked
 size = (240, 180)         # The resolution of the camera
 
-source = cv2.VideoCapture(1)
+source = cv2.VideoCapture(0)
 
 #Set the camera resolution (if supported by your particular camera)
 ret = source.set(cv.CV_CAP_PROP_FRAME_WIDTH,size[0])
 ret = source.set(cv.CV_CAP_PROP_FRAME_HEIGHT,size[1])
-source.set(5,1)
+source.set(5,20)
 
 while(1):
     kernel_open = np.ones((5,5),np.uint8,5)     # Erosion values

@@ -26,11 +26,11 @@ source = cv2.VideoCapture(0)
 
 ret = source.set(cv.CV_CAP_PROP_FRAME_WIDTH,size[0])
 ret = source.set(cv.CV_CAP_PROP_FRAME_HEIGHT,size[1])
-#source.set(5,1)
+source.set(5,20)
 
 while(1):
-    kernel_open = np.ones((5,5),np.uint8, 5) # Erosion values
-    kernel_close = np.ones((5,5),np.uint8, 5) #Dilution values
+    kernel_open = np.ones((5,5),np.uint8, 3) # Erosion values
+    kernel_close = np.ones((5,5),np.uint8, 3) #Dilution values
     _, frame = source.read() # reads one frame at a time
 
     # Use this to get the resolution of the picture
@@ -40,8 +40,8 @@ while(1):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # define range of blue color in HSV
-    lower_blue = np.array([30,50,50])
-    upper_blue = np.array([80,255,255])
+    lower_blue = np.array([35,50,50])
+    upper_blue = np.array([60,255,255])
 
     # Threshold the HSV image to get only blue colors
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
