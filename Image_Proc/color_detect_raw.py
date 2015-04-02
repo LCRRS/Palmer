@@ -118,7 +118,13 @@ while(1):
 
         # Produces the new PID_yaw setpoint "-" corresponds to the CCW activation; "+" to the CW activation
         # Value "3.52" is the number of degrees per pixel in the current camera resolution
-        offset_hor = (str(int((((center_obj[0]) - center_frame[0])/3.52)*10))+"\n")
+        offset_hor_int = int((((center_obj[0]) - center_frame[0])/3.52)*10)
+        if(offset_hor_int > 100):
+            offset_hor = str(99)+"\n"
+        elif(offset_hor_int < -100):
+            offset_hor = str(-99)+"\n"
+        else:
+            offset_hor = str(offset_hor_int)+"\n"
         # Alters the START_SPEED where "-" corresponds to the decrease in thrust and "+" to the increase in thrust
         offset_ver = (str(int((((center_frame[1]) - center_obj[1])*Kp_ver)*10))+"\n")
         # The list of string objects that is sent to the Arduino.
