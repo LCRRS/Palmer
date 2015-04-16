@@ -93,6 +93,7 @@ float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];
 
 bool initiation_count = false; // Used to initiate motor start/warmup routine inside the loop function only once
+bool yaw_orientation_update = true; //Used to determining whether the yaw axis should update its orientation setpoing for the PID
 
 float ypr0;
 float ypr1;
@@ -157,7 +158,20 @@ void serial_read() {
         pi_data[0] = 99;
     }
 
-    pid_setPoint_yaw = ypr0 + pi_data[1]; //if an object is being tracked sets the new pid target value
+    /*
+    The point of the following if statements is to stop the ypr0 values from updating when we are
+    not receiving values from the pi.  This is to prevent drifting in the yaw axis when the pi values are not present.
+    */
+    if(pi_data[1] == 0){ //Check if receiving values
+        if(yaw_orientation_update != false){ //check if this is the first cycle without a value
+            pid_setPoint_yaw = ypr0;  //Since this is the first cycle, take the current value to keep until we get another reading from the pi
+            yaw_orientation_update = false; //since not receiving values, keep old ypr0
+        }
+    }
+    else{
+        pid_setPoint_yaw = ypr0 + pi_data[1]; //if an object is being tracked sets the new pid target value
+        yaw_orientation_update = true; //since receiving values, update ypr0
+    }
     pid_setPoint_pitch = -pi_data[2];
     pid_setPoint_roll = pi_data[2];
 }
