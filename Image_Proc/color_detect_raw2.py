@@ -109,23 +109,23 @@ while(1):
         radius_obj = int(radius_obj)                        # Radius of the tracked object
 
         area_obj = ((radius_obj**2)*3.14159)          # Area of the minimum circular enclosure
-        if (area_obj > area_frame_max):
-            offset_dis = str(1)+"\n"
-        elif (area_obj < area_frame):
-            offset_dis = str(-1)+"\n"
-        else:
+        #if (area_obj > area_frame_max):
+        #    offset_dis = str(1)+"\n"
+        #elif (area_obj < area_frame):
+        #    offset_dis = str(-1)+"\n"
+        #else:
             # Distance comparison between the calculated area and the desired area
 
             # distance = 6.573/(mt.tan(((radius_obj/3.52)*mt.pi)/180))
             # pid_distance = PID_Compute(Kp_dist, Kd_dist, Upper_Limit_dist, Lower_Limit_dist, Setpoint_dist, distance, PID_output_dist)
-            offset_dis = str(0)+"\n"
+        #    offset_dis = str(0)+"\n"
 
         # Produces the new PID_yaw setpoint "-" corresponds to the CCW activation; "+" to the CW activation
         # Value "3.52" is the number of degrees per pixel in the current camera resolution
         offset_hor_int = int((((center_obj[0]) - center_frame[0])/3.52)*10)
-        if(offset_hor_int > 10):
+        if(offset_hor_int > 9):
             offset_hor = str(9)+"\n"
-        elif(offset_hor_int < -10):
+        elif(offset_hor_int < -9):
             offset_hor = str(-9)+"\n"
         else:
             offset_hor = str(offset_hor_int)+"\n"
@@ -142,16 +142,18 @@ while(1):
         #       a. 0 - too close to the camera at which the drone should back up
         #       b. 1 - ideal position at which the drone should remain hovering
         #       c. 2 - too far away - the drone should keep moving towards the object
-        to_be_sent = ["99\n", offset_hor, offset_dis]
-        for i in range(len(to_be_sent)):
-            serial_port.write(to_be_sent[i])
-            print(to_be_sent[i])
+        #to_be_sent = ["99\n", offset_hor, offset_dis]
+        #for i in range(len(to_be_sent)):
+        #    serial_port.write(to_be_sent[i])
+        #    print(to_be_sent[i])
+        serial_port.write(offset_hor)
 
     else:
-        to_be_sent = ["99\n", "0\n", "0\n"]
-        for i in range(len(to_be_sent)):
-            serial_port.write(to_be_sent[i])
-            print(to_be_sent[i])
+        #to_be_sent = ["99\n", "0\n", "0\n"]
+        #for i in range(len(to_be_sent)):
+        #    serial_port.write(to_be_sent[i])
+        #    print(to_be_sent[i])
+        serial_port.write("0\n")
 
     k = cv2.waitKey(5) & 0xFF
     if k == 27:
