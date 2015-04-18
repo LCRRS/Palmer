@@ -52,12 +52,12 @@
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1720
-#define SAMPLE_TIME 5
+#define START_SPEED 1750
+#define SAMPLE_TIME 15
 
-#define KP_PR 6.5
+#define KP_PR 6.8
 #define KI_PR 4.3
-#define KD_PR 0.85
+#define KD_PR 0.95
 #define KP_YAW 0.0
 #define KI_YAW 0.0
 #define KD_YAW 0.0
@@ -331,7 +331,7 @@ void loop() {
     if (!dmpReady) return;
 
     // wait for MPU interrupt or extra packet(s) available
-    if (millis() > 5000 && !mpuInterrupt && fifoCount < packetSize)
+    if (millis() > 25000 && !mpuInterrupt && fifoCount < packetSize)
     {
         warmup();
 
