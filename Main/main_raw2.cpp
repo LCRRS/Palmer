@@ -54,22 +54,22 @@
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1720
+#define START_SPEED 1730
 #define SAMPLE_TIME 15
 
 #define KP_PR 6.8
 #define KI_PR 4.3
 #define KD_PR 0.95
-#define KP_YAW 15.0
-#define KI_YAW 12.0
-#define KD_YAW 3.0
+#define KP_YAW 6.0
+#define KI_YAW 3.0
+#define KD_YAW 0.8
 
-#define LOWER_LIMIT_YAW -20
-#define UPPER_LIMIT_YAW 20
+#define LOWER_LIMIT_YAW -30
+#define UPPER_LIMIT_YAW 30
 #define LOWER_LIMIT_PR -45   // The lowest possible output that the PID can produce
 #define UPPER_LIMIT_PR 45 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
-#define FRAME_RATE 20
+#define FRAME_RATE 100
 
 MPU6050 mpu;
 
@@ -162,7 +162,7 @@ void stabilize(float current_speed){
 
 void serial_read() {
 
-    int pi_data = Serial.parseInt();\
+    pi_data = Serial.parseInt();
 
     if (pi_data == 0){
         if(yaw_orientation_update != false){
@@ -192,15 +192,13 @@ void warmup(){
     myPID_roll.SetSampleTime(SAMPLE_TIME);
 
     while (!initiation_count){
-        serial_read();
-        if (pi_data == 0){
-            for (int speed = 1000; speed < START_SPEED; speed++){
-                setSpeed(speed);
-                delay(10);
-            }
-            initiation_count = true;
-            setSpeed(START_SPEED);
+        for (int speed = 1000; speed < START_SPEED; speed++){
+            setSpeed(speed);
+            delay(10);
         }
+        initiation_count = true;
+        setSpeed(START_SPEED);
+
     }
 }
 
@@ -352,7 +350,7 @@ void setup(){
     bool cat = false;
     while(!cat) {
         serial_read();
-        if (pi_data == 0) {
+        if (pi_data == 11) {
             cat = true;
         }
     }
