@@ -54,22 +54,22 @@
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1730
+#define START_SPEED 1740
 #define SAMPLE_TIME 15
 
-#define KP_PR 6.8
-#define KI_PR 4.3
-#define KD_PR 0.95
-#define KP_YAW 6.0
-#define KI_YAW 3.0
-#define KD_YAW 0.8
+#define KP_PR 7.0
+#define KI_PR 0.0
+#define KD_PR 1.1
+#define KP_YAW 9.0
+#define KI_YAW 5.6
+#define KD_YAW 1.5
 
 #define LOWER_LIMIT_YAW -30
 #define UPPER_LIMIT_YAW 30
 #define LOWER_LIMIT_PR -45   // The lowest possible output that the PID can produce
 #define UPPER_LIMIT_PR 45 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
-#define FRAME_RATE 100
+#define FRAME_RATE 65
 
 MPU6050 mpu;
 
@@ -372,6 +372,7 @@ void loop() {
         }
 
         stabilize(START_SPEED);
+        Serial.println(speed_myservo2);
     }
     get_ypr();
 

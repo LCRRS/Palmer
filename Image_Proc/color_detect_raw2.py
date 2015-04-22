@@ -62,9 +62,10 @@ def PID_Compute(Kp, Kd, Upper_Limit, Lower_Limit, Set_Point, Pid_Input, Pid_Outp
         return output
 
 k = 0
-while(k!=100):
+while(k!=1000):
     serial_port.write("11\n")
     k=k+1
+    print("11\n")
 
 source = cv2.VideoCapture(0)
 
@@ -134,7 +135,7 @@ while(1):
         # Value "3.52" is the number of degrees per pixel in the current camera resolution
 
 
-        offset_hor_raw_int = (((((center_obj[0]) - center_frame[0])/3.52)*10)/4)**3
+        offset_hor_raw_int = (((((center_obj[0]) - center_frame[0])/3.52)))
         offset_hor_int = int(offset_hor_raw_int)
         if(offset_hor_int > 9):
             offset_hor = str(9)+"\n"
