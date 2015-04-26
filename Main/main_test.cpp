@@ -55,9 +55,9 @@
 #define START_SPEED 1750
 #define SAMPLE_TIME 15
 
-#define KP_PR 6.8
-#define KI_PR 4.3
-#define KD_PR 0.95
+#define KP_PR 7.0
+#define KI_PR 4.8
+#define KD_PR 1.1
 #define KP_YAW 0.0
 #define KI_YAW 0.0
 #define KD_YAW 0.0
@@ -262,7 +262,7 @@ void setup()
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
         Wire.begin();
-        TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+        TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
     #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
         Fastwire::setup(400, true);
     #endif
