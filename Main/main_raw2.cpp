@@ -53,23 +53,21 @@
 #define OUTPUT_READABLE_YAWPITCHROLL
 
 #define MIN_SIGNAL 1000
-#define LOOPTIME 100
-#define START_SPEED 1740
-#define SAMPLE_TIME 15
+#define LOOPTIME 10
+#define START_SPEED 1745
+#define SAMPLE_TIME 10
 
-#define KP_PR 7.0
+#define KP_PR 7.05
 #define KI_PR 0.0
-#define KD_PR 1.1
-#define KP_YAW 9.0
-#define KI_YAW 5.6
-#define KD_YAW 1.5
+#define KD_PR 0.9
+#define KP_YAW 6.0
+#define KI_YAW 2.3
+#define KD_YAW 0.0
 
-#define LOWER_LIMIT_YAW -30
-#define UPPER_LIMIT_YAW 30
-#define LOWER_LIMIT_PR -45   // The lowest possible output that the PID can produce
-#define UPPER_LIMIT_PR 45 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
-
-#define FRAME_RATE 65
+#define LOWER_LIMIT_YAW -39
+#define UPPER_LIMIT_YAW 39
+#define LOWER_LIMIT_PR -48   // The lowest possible output that the PID can produce
+#define UPPER_LIMIT_PR 48 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
 MPU6050 mpu;
 
@@ -95,28 +93,19 @@ float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];
 
 bool initiation_count = false; // Used to initiate motor start/warmup routine inside the loop function only once
-
-bool yaw_orientation_update = true;
+bool yaw_orientation_update = true; //Used to determining whether the yaw axis should update its orientation setpoing for the PID
 
 float ypr0;
 float ypr1;
 float ypr2;
 
-/* With a fast microcontroller (like Arduino Mega)
-you can increase the precision of pi_data container to contain floats
-and allow for [horizontal, vertical, distance] measurments
-to be transmitted by the raspberry pi.
-The python image processing is set up to accept these changes */
-
-int pi_data;
-
-int counter = 0; //used to track the frame rate
+int pi_data; // [horizontal, vertical, distance] container of the offset from the raspberry pi
 
 /*=================================================
 ================= PID CONTROLLER ==================
 =================================================*/
 
-float pid_setPoint_yaw;    // The desired value of the gyroscope. PID produces as an output until the value is reached
+float pid_setPoint_yaw = 0;    // The desired value of the gyroscope. PID produces as an output until the value is reached
 float pid_setPoint_pitch = 0;
 float pid_setPoint_roll = 0;
 
@@ -162,17 +151,23 @@ void stabilize(float current_speed){
 
 void serial_read() {
 
-    pi_data = Serial.parseInt();
+    int new_val = Serial.parseInt();
+    pi_data = new_val;
 
-    if (pi_data == 0){
-        if(yaw_orientation_update != false){
-            pid_setPoint_yaw = ypr0;
-            yaw_orientation_update = false;
+
+    /*
+    The point of the following if statements is to stop the ypr0 values from updating when we are
+    not receiving values from the pi.  This is to prevent drifting in the yaw axis when the pi values are not present.
+    */
+    if(pi_data <= 1 && pi_data >= -1){ //Check if receiving values
+        if(yaw_orientation_update != false){ //check if this is the first cycle without a value
+            pid_setPoint_yaw = ypr0;  //Since this is the first cycle, take the current value to keep until we get another reading from the pi
+            yaw_orientation_update = false; //since not receiving values, keep old ypr0
         }
     }
     else{
-        pid_setPoint_yaw = ypr0 + pi_data;
-        yaw_orientation_update = true;
+        pid_setPoint_yaw = ypr0 + pi_data; //if an object is being tracked sets the new pid target value
+        yaw_orientation_update = true; //since receiving values, update ypr0
     }
     pid_setPoint_pitch = 0;
     pid_setPoint_roll = 0;
@@ -192,13 +187,15 @@ void warmup(){
     myPID_roll.SetSampleTime(SAMPLE_TIME);
 
     while (!initiation_count){
-        for (int speed = 1000; speed < START_SPEED; speed++){
-            setSpeed(speed);
-            delay(10);
+        serial_read();
+        if (pi_data == 11){
+            for (int speed = 1000; speed < START_SPEED; speed++){
+                setSpeed(speed);
+                delay(10);
+            }
+            initiation_count = true;
+            setSpeed(START_SPEED);
         }
-        initiation_count = true;
-        setSpeed(START_SPEED);
-
     }
 }
 
@@ -272,7 +269,7 @@ void get_ypr(){
             mpu.dmpGetGravity(&gravity, &q);
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
-            ypr0 = (ypr[0] * 180/M_PI);
+            ypr0 = (ypr[0] * 180/M_PI)+180;
             ypr1 = (ypr[1] * 180/M_PI)-2.27;
             ypr2 = (ypr[2] * 180/M_PI)-2.02;
         #endif
@@ -303,7 +300,7 @@ void setup(){
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
         Wire.begin();
-        TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+        TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
     #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
         Fastwire::setup(400, true);
     #endif
@@ -357,13 +354,15 @@ void setup(){
     warmup();
 }
 
+int counter = 0;
+
 void loop() {
     // if programming failed, don't try to do anything
     if (!dmpReady) return;
 
     // wait for MPU interrupt or extra packet(s) available
     if (!mpuInterrupt){
-        if (counter == FRAME_RATE){
+        if (counter == 45){
             serial_read();
             counter=0;
         }
@@ -372,7 +371,6 @@ void loop() {
         }
 
         stabilize(START_SPEED);
-        Serial.println(speed_myservo2);
     }
     get_ypr();
 
