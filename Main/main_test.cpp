@@ -52,12 +52,12 @@
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1750
-#define SAMPLE_TIME 15
+#define START_SPEED 1675
+#define SAMPLE_TIME 10
 
-#define KP_PR 7.0
-#define KI_PR 4.8
-#define KD_PR 1.1
+#define KP_PR 5.3
+#define KI_PR 3.8
+#define KD_PR 0.80
 #define KP_YAW 0.0
 #define KI_YAW 0.0
 #define KD_YAW 0.0
@@ -219,8 +219,8 @@ void get_ypr()
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
             ypr0 = (ypr[0] * 180/M_PI);
-            ypr1 = (ypr[1] * 180/M_PI)-2.27;
-            ypr2 = (ypr[2] * 180/M_PI)-2.02;
+            ypr1 = (ypr[1] * 180/M_PI)-2.87;
+            ypr2 = (ypr[2] * 180/M_PI)-2.58;
         #endif
 
         #ifdef OUTPUT_READABLE_WORLDACCEL
@@ -350,11 +350,6 @@ void loop() {
         speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw;
         speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw;
         speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw;
-
-        Serial.print("ypr0:  ");
-        Serial.print(ypr0);
-        Serial.print("  ypr1:  ");
-        Serial.print(ypr1);
 
         indivSpeed(myservo1, speed_myservo1);
         indivSpeed(myservo2, speed_myservo2);

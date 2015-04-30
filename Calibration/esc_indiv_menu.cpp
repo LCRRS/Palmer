@@ -10,7 +10,7 @@ Servo ESC; //Create as much as Servoobject you want. You can controll 2 or more 
 void setup()
 {
 
-	ESC.attach(9);    // attached to pin 9 I just do this with 1 Servo
+	ESC.attach(11);    // attached to pin 9 I just do this with 1 Servo
 	Serial.begin(9600);    // start serial at 9600 baud
 
 }

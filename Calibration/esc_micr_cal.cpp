@@ -10,10 +10,10 @@
 
 ================================*/
 
-int motorpin1 = 9;
-int motorpin2 = 10;
-int motorpin3 = 11;
-int motorpin4 = 12;
+int motorpin1 = 6;
+int motorpin2 = 9;
+int motorpin3 = 10;
+int motorpin4 = 11;
 
 Servo motor1;
 Servo motor2;

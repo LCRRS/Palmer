@@ -53,21 +53,21 @@
 #define OUTPUT_READABLE_YAWPITCHROLL
 
 #define MIN_SIGNAL 1000
-#define LOOPTIME 100
-#define START_SPEED 1680
+#define LOOPTIME 10
+#define START_SPEED 1745
 #define SAMPLE_TIME 10
 
-#define KP_PR 5.3
-#define KI_PR 3.8
-#define KD_PR 0.8
-#define KP_YAW 8.0
-#define KI_YAW 0.0
+#define KP_PR 7.05
+#define KI_PR 0.0
+#define KD_PR 0.9
+#define KP_YAW 6.0
+#define KI_YAW 2.3
 #define KD_YAW 0.0
 
-#define LOWER_LIMIT_YAW -75
-#define UPPER_LIMIT_YAW 75
-#define LOWER_LIMIT_PR -45   // The lowest possible output that the PID can produce
-#define UPPER_LIMIT_PR 45 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
+#define LOWER_LIMIT_YAW -39
+#define UPPER_LIMIT_YAW 39
+#define LOWER_LIMIT_PR -48   // The lowest possible output that the PID can produce
+#define UPPER_LIMIT_PR 48 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
 MPU6050 mpu;
 
@@ -269,9 +269,9 @@ void get_ypr(){
             mpu.dmpGetGravity(&gravity, &q);
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
-            ypr0 = (ypr[0] * 180/M_PI);
-            ypr1 = (ypr[1] * 180/M_PI)-2.87;
-            ypr2 = (ypr[2] * 180/M_PI)-2.58;
+            ypr0 = (ypr[0] * 180/M_PI)+180;
+            ypr1 = (ypr[1] * 180/M_PI)-2.27;
+            ypr2 = (ypr[2] * 180/M_PI)-2.02;
         #endif
     }
 }
@@ -300,7 +300,7 @@ void setup(){
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
         Wire.begin();
-        TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+        TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
     #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
         Fastwire::setup(400, true);
     #endif
@@ -362,7 +362,7 @@ void loop() {
 
     // wait for MPU interrupt or extra packet(s) available
     if (!mpuInterrupt){
-        if (counter == 30){
+        if (counter == 45){
             serial_read();
             counter=0;
         }
