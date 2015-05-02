@@ -52,7 +52,7 @@
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1675
+#define START_SPEED 1680
 #define SAMPLE_TIME 10
 
 #define KP_PR 5.3
