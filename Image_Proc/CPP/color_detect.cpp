@@ -39,13 +39,13 @@ using namespace std;
 
 
 
-int center_frame[2] = {88,72};    // The (x,y) coordinates of the center of the frame with the resolution 640*480
+int center_frame[2] = {320,240};    // The (x,y) coordinates of the center of the frame with the resolution 640*480
 
 int radius_frame = 30;        // The minimum desired radius of the object being tracked
 int area_frame = 70;         // The desired area of the object that is being tracked
 int radius_frame_max = 50;    // The maximum desired radius of the object being tracked
 int area_frame_max = 150;   // The maximum desired area of the object being tracked
-int size[2] = {240,180};			    // The resolution of the camera
+int size[2] = {640,480};			    // The resolution of the camera
 
 float PID_input_hor = 0;
 float PID_output_hor = 0;
@@ -56,35 +56,53 @@ float Kd_hor = 0.03;               // Derivative constant for the PID calculatio
 float Upper_Limit_hor = 10.0;       // Upper limit for the PID output of the distance correction
 float Lower_Limit_hor = -10.0;     // Lower limit for the PID output of the distance correction
 
-bool first_calculation = false;
-float Kp_ver = 0.125;
-
 
 PID myPID(&PID_input_hor,&PID_output_hor,&Setpoint_hor,Kp_hor,Ki_hor,Kd_hor);
 
+int main(int argc, char* argv[]){
 
-int main(){
+	myPID.SetLimits(&Upper_Limit_hor,&Lower_Limit_hor);
 
 	VideoCapture source(0);
-
 	if (!source.isOpened())  // if not success, exit program
 		{
 			cout << "Did you forget to switch the camera # ???" << endl;
 			return -1;
 		}
 
-	double Width = cap.set(CV_CAP_PROP_FRAME_WIDTH,size[0]);
-	double Height = cap.set(CV_CAP_PROP_FRAME_HEIGHT,size[1]);
+	double Width = source.set(CV_CAP_PROP_FRAME_WIDTH,size[0]); //get the width of frames of the video
+	double Height = source.set(CV_CAP_PROP_FRAME_HEIGHT,size[1]); //get the height of frames of the video
+
+
+	namedWindow("MyVideo",CV_WINDOW_AUTOSIZE);
 
 	while(true){
-	
-		myPID.SetLimits(&Upper_Limit_hor,&Lower_Limit_hor);
+		
 		myPID.Compute();
 
-		
+		cout << "Frame size : " << Width << " x " << Height << endl;
+
+		Mat frame;
+		bool Success = source.read(frame);
+		if (!Success) //if not success, break loop
+		{
+			cout << "Sorry forgot how to camera.read" << endl;
+			break;
+		}
+
+
+		imshow("MyVideo", frame);
+
+		if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
+		{
+			cout << "esc key is pressed by user" << endl;
+			break; 
+		}
 
 		cout << PID_output_hor << endl;
 	}
+
+	return 0;
 
 }
 
