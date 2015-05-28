@@ -24,10 +24,6 @@
 
 #include <iostream>
 #include <cmath>
-#include <tuple>
-#include <utility>
-
-#include <iostream>
 
 /* USING THE NAMESPACE FOR OPENCV OBJECTS */
 
@@ -51,17 +47,44 @@ int radius_frame_max = 50;    // The maximum desired radius of the object being 
 int area_frame_max = 150;   // The maximum desired area of the object being tracked
 int size[2] = {240,180};			    // The resolution of the camera
 
-float Kp_hor = 0.125;                // Proportionality constant for the PID calculation of the Distance
+float PID_input_hor = 0;
+float PID_output_hor = 0;
+float Setpoint_hor = 100;          // The desired position of the quadcopter in centimeters
+float Kp_hor = 0.135;                // Proportionality constant for the PID calculation of the Distance
+float Ki_hor = 0.001;
 float Kd_hor = 0.03;               // Derivative constant for the PID calculation of Distance
-int Upper_Limit_hor = 1;       // Upper limit for the PID output of the distance correction
-int Lower_Limit_hor = -1;     // Lower limit for the PID output of the distance correction
-int Setpoint_hor = 100;          // The desired position of the quadcopter in centimeters
-int PID_output_hor = 0;
+float Upper_Limit_hor = 10.0;       // Upper limit for the PID output of the distance correction
+float Lower_Limit_hor = -10.0;     // Lower limit for the PID output of the distance correction
+
 bool first_calculation = false;
 float Kp_ver = 0.125;
 
+
+PID myPID(&PID_input_hor,&PID_output_hor,&Setpoint_hor,Kp_hor,Ki_hor,Kd_hor);
+
+
 int main(){
 
-	cout << center_frame[0] << endl;
+	VideoCapture source(0);
+
+	if (!source.isOpened())  // if not success, exit program
+		{
+			cout << "Did you forget to switch the camera # ???" << endl;
+			return -1;
+		}
+
+	double Width = cap.set(CV_CAP_PROP_FRAME_WIDTH,size[0]);
+	double Height = cap.set(CV_CAP_PROP_FRAME_HEIGHT,size[1]);
+
+	while(true){
+	
+		myPID.SetLimits(&Upper_Limit_hor,&Lower_Limit_hor);
+		myPID.Compute();
+
+		
+
+		cout << PID_output_hor << endl;
+	}
 
 }
+
