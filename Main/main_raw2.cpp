@@ -54,18 +54,18 @@
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1680
+#define START_SPEED 1740
 #define SAMPLE_TIME 10
 
-#define KP_PR 5.3
-#define KI_PR 3.8
-#define KD_PR 0.8
-#define KP_YAW 8.0
-#define KI_YAW 5.0
+#define KP_PR 5.5
+#define KI_PR 3.9
+#define KD_PR 0.5
+#define KP_YAW 10.0
+#define KI_YAW 8.0
 #define KD_YAW 0.0
 
-#define LOWER_LIMIT_YAW -100 //when KI_YAW is zero set to 75
-#define UPPER_LIMIT_YAW 100
+#define LOWER_LIMIT_YAW -70 //when KI_YAW is zero set to 75
+#define UPPER_LIMIT_YAW 70
 #define LOWER_LIMIT_PR -45   // The lowest possible output that the PID can produce
 #define UPPER_LIMIT_PR 45 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
@@ -270,8 +270,14 @@ void get_ypr(){
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
             ypr0 = (ypr[0] * 180/M_PI)+180;
-            ypr1 = (ypr[1] * 180/M_PI)-2.87;
-            ypr2 = (ypr[2] * 180/M_PI)-2.58;
+            ypr1 = (ypr[1] * 180/M_PI)-2.80;
+            ypr2 = (ypr[2] * 180/M_PI)-2.24;
+            if(ypr0 > 360){
+                ypr0 -=360;
+            }
+            else if (ypr0 < 0){
+                ypr0 +=360;
+            }
         #endif
     }
 }
@@ -362,7 +368,7 @@ void loop() {
 
     // wait for MPU interrupt or extra packet(s) available
     if (!mpuInterrupt){
-        if (counter == 30){
+        if (counter == 50){
             serial_read();
             counter=0;
         }

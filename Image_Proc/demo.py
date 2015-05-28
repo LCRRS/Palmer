@@ -62,9 +62,10 @@ def PID_Compute(Kp, Kd, Upper_Limit, Lower_Limit, Set_Point, Pid_Input, Pid_Outp
         return output
 
 k = 0
-while(k!=100):
+while(k!=1000):
     serial_port.write("11\n")
     k=k+1
+    print("11\n")
 
 source = cv2.VideoCapture(0)
 
@@ -72,11 +73,11 @@ source = cv2.VideoCapture(0)
 ret = source.set(cv.CV_CAP_PROP_FRAME_WIDTH,size[0])
 ret = source.set(cv.CV_CAP_PROP_FRAME_HEIGHT,size[1])
 # VideoCapture::get(CV_CAP_PROP_POS_FRAMES).
-# source.set(5,20)
+source.set(5,20)
 
 while(1):
-    kernel_open = np.ones((5,5),np.uint8,5)     # Erosion values
-    kernel_close = np.ones((5,5),np.uint8,5)    # Dilution values
+    kernel_open = np.ones((5,5),np.uint8,9)     # Erosion values
+    kernel_close = np.ones((5,5),np.uint8,9)    # Dilution values
     _, frame = source.read()                    # reads one frame at a time
 
     # Use this to get the resolution of the picture
@@ -87,7 +88,7 @@ while(1):
 
     # Definition of Fifty Shades of Green
     lower_blue = np.array([35,50,50])   # define range of green color in HSV
-    upper_blue = np.array([60,255,255])
+    upper_blue = np.array([53,255,255])
 
     # Threshold the HSV image to get only blue colors
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
@@ -106,6 +107,8 @@ while(1):
     # the following algorithm calculates the countours and the parameters needed for tracking
     # in case an object of green color and sufficient size is identified
 
+    cv2.circle(res,center_frame,radius_frame,(255,0,0),2)
+    cv2.circle(res,center_frame,radius_frame_max,(0,0,255),2)
 
 
     if len(contours) > 0:
@@ -113,6 +116,7 @@ while(1):
         (x,y),radius_obj = cv2.minEnclosingCircle(cnt)      # Parameters (center, radius) of the minimum circle that can enclose the tracked object
         center_obj = (int(x),int(y))                        # Center of the tracked object
         radius_obj = int(radius_obj)                        # Radius of the tracked object
+        cv2.circle(res,center_obj,radius_obj,(0,255,0),-1)                       # Radius of the tracked object
 
         area_obj = ((radius_obj**2)*3.14159)          # Area of the minimum circular enclosure
 
@@ -134,7 +138,7 @@ while(1):
         # Value "3.52" is the number of degrees per pixel in the current camera resolution
 
 
-        offset_hor_raw_int = (((((center_obj[0]) - center_frame[0])/3.52)*10)/4)**3
+        offset_hor_raw_int = (((((center_obj[0]) - center_frame[0])/3.52)))
         offset_hor_int = int(offset_hor_raw_int)
         if(offset_hor_int > 9):
             offset_hor = str(9)+"\n"
@@ -182,6 +186,8 @@ while(1):
         serial_port.write("0\n")
         print("0\n")
 
+    cv2.imshow('res',res)
+    cv2.imshow('frame',frame)
     k = cv2.waitKey(5) & 0xFF
     if k == 27:
         break

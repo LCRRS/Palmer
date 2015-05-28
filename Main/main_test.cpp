@@ -52,12 +52,12 @@
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1680
+#define START_SPEED 1740
 #define SAMPLE_TIME 10
 
-#define KP_PR 5.3
-#define KI_PR 3.8
-#define KD_PR 0.80
+#define KP_PR 5.5
+#define KI_PR 3.9
+#define KD_PR 0.85
 #define KP_YAW 0.0
 #define KI_YAW 0.0
 #define KD_YAW 0.0
@@ -219,8 +219,8 @@ void get_ypr()
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
             ypr0 = (ypr[0] * 180/M_PI);
-            ypr1 = (ypr[1] * 180/M_PI)-2.87;
-            ypr2 = (ypr[2] * 180/M_PI)-2.58;
+            ypr1 = (ypr[1] * 180/M_PI)-2.80;
+            ypr2 = (ypr[2] * 180/M_PI)-2.24;
         #endif
 
         #ifdef OUTPUT_READABLE_WORLDACCEL
@@ -262,7 +262,7 @@ void setup()
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
         Wire.begin();
-        TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+        TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
     #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
         Fastwire::setup(400, true);
     #endif
