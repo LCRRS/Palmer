@@ -41,20 +41,32 @@ using namespace std;
 
 int center_frame[2] = {320,240};    // The (x,y) coordinates of the center of the frame with the resolution 640*480
 
-int radius_frame = 30;        // The minimum desired radius of the object being tracked
-int area_frame = 70;         // The desired area of the object that is being tracked
-int radius_frame_max = 50;    // The maximum desired radius of the object being tracked
-int area_frame_max = 150;   // The maximum desired area of the object being tracked
+int radius_frame = 90;        // The minimum desired radius of the object being tracked
+int area_frame = 25447;         // The desired area of the object that is being tracked
+int radius_frame_max = 160;    // The maximum desired radius of the object being tracked
+int area_frame_max = 80425;   // The maximum desired area of the object being tracked
 int size[2] = {640,480};			    // The resolution of the camera
 
 float PID_input_hor = 0;
 float PID_output_hor = 0;
-float Setpoint_hor = 100;          // The desired position of the quadcopter in centimeters
+float Setpoint_hor = 320;          // The desired position of the quadcopter in centimeters
 float Kp_hor = 0.135;                // Proportionality constant for the PID calculation of the Distance
 float Ki_hor = 0.001;
 float Kd_hor = 0.03;               // Derivative constant for the PID calculation of Distance
 float Upper_Limit_hor = 10.0;       // Upper limit for the PID output of the distance correction
 float Lower_Limit_hor = -10.0;     // Lower limit for the PID output of the distance correction
+
+
+
+int lowH = 35;
+int highH = 60;
+
+int lowS = 50; 
+int highS = 255;
+
+int lowV = 50;
+int highV = 255;
+
 
 
 PID myPID(&PID_input_hor,&PID_output_hor,&Setpoint_hor,Kp_hor,Ki_hor,Kd_hor);
@@ -73,14 +85,17 @@ int main(int argc, char* argv[]){
 	double Width = source.set(CV_CAP_PROP_FRAME_WIDTH,size[0]); //get the width of frames of the video
 	double Height = source.set(CV_CAP_PROP_FRAME_HEIGHT,size[1]); //get the height of frames of the video
 
+	/* Setting up the Windows for projections */
 
-	namedWindow("MyVideo",CV_WINDOW_AUTOSIZE);
+	namedWindow("Original",CV_WINDOW_AUTOSIZE);
+	namedWindow("HSV",CV_WINDOW_AUTOSIZE);
+	namedWindow("Thresholding",CV_WINDOW_AUTOSIZE);
+
+
 
 	while(true){
 		
 		myPID.Compute();
-
-		cout << "Frame size : " << Width << " x " << Height << endl;
 
 		Mat frame;
 		bool Success = source.read(frame);
@@ -90,12 +105,37 @@ int main(int argc, char* argv[]){
 			break;
 		}
 
+		/* HSV PROCESSING */
 
-		imshow("MyVideo", frame);
+		Mat imageHSV;
+		cvtColor(frame, imageHSV, COLOR_BGR2HSV);		// Conversion from BGR to HSV
 
-		if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
+		/* THRESHOLDING */
+
+		Mat imageTHR;
+
+		inRange(imageHSV, Scalar(lowH, lowS, lowV), Scalar(highH, highS, highV), imageTHR);
+
+		/* OPENING EROSION/DILUTION */
+
+		erode(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		dilate(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+
+		/* CLOSING EROSION/DILUTION */
+
+		dilate(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(5, 5))); 
+		erode(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+
+		/* Displaying all three outputs */
+
+		imshow("Original", frame);
+		imshow("HSV", imageHSV);
+		imshow("Thresholding", imageTHR);
+
+		if (waitKey(30) == 27)
 		{
-			cout << "esc key is pressed by user" << endl;
 			break; 
 		}
 
