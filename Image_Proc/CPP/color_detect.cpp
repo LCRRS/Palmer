@@ -1,6 +1,5 @@
 /* OPEN CV LIBRARIES */
 
-
 #include "opencv2/core/core.hpp"
 #include "opencv2/flann/miniflann.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -67,6 +66,12 @@ int highS = 255;
 int lowV = 50;
 int highV = 255;
 
+int largest_area = 15000;
+int largest_contour_index;
+cv::Rect bounding_rect;
+
+int thresh = 100;
+int max_thresh = 255;
 
 
 PID myPID(&PID_input_hor,&PID_output_hor,&Setpoint_hor,Kp_hor,Ki_hor,Kd_hor);
@@ -91,7 +96,7 @@ int main(int argc, char* argv[]){
 	namedWindow("HSV",CV_WINDOW_AUTOSIZE);
 	namedWindow("Thresholding",CV_WINDOW_AUTOSIZE);
 
-
+	RNG rng(12345);
 
 	while(true){
 		
@@ -118,18 +123,54 @@ int main(int argc, char* argv[]){
 
 		/* OPENING EROSION/DILUTION */
 
-		erode(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-		dilate(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		erode(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
+		dilate(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
 
 
 		/* CLOSING EROSION/DILUTION */
 
-		dilate(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(5, 5))); 
-		erode(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		dilate(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8))); 
+		erode(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
 
+
+		/* PREPPING THE CONTOURS */
+
+		/* BETTER KEEP THOSE REFERENCES AND POINTERS RIGHT */
+		/* REALLY DOES MESS THINGS UP A LOT OF TIMES */
+
+		vector<vector<Point> > contours;
+		vector<Vec4i> hierarchy;
+
+		Mat canny_output;
+
+		/// Detect edges using canny
+		Canny(imageTHR, canny_output, thresh, thresh*2, 3 );
+		/// Find contours
+		findContours(canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+
+		vector<vector<Point>> contours_poly(contours.size());
+  		vector<Point2f> center(contours.size());
+  		vector<float> radius(contours.size());
+
+
+		for( int i = 0; i < contours.size(); i++ )
+	    {
+	        minEnclosingCircle( Mat (contours[i]), center[i], radius[i] );
+	    }
+
+	    Scalar color = Scalar(255,255,255);
+
+		Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
+		for( int i = 0; i< contours.size(); i++ )
+		{
+		    circle( drawing, center[i], (int)radius[i], color, 2, 8, 0 );
+		}
+		
+		namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
+		imshow( "Contours", drawing );
 
 		/* Displaying all three outputs */
-
+		
 		imshow("Original", frame);
 		imshow("HSV", imageHSV);
 		imshow("Thresholding", imageTHR);
@@ -139,7 +180,7 @@ int main(int argc, char* argv[]){
 			break; 
 		}
 
-		cout << PID_output_hor << endl;
+		cout << contours.size() << endl;
 	}
 
 	return 0;
