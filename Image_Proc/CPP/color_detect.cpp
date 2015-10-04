@@ -164,6 +164,9 @@ int main(int argc, char* argv[]){
 		for( int i = 0; i< contours.size(); i++ )
 		{
 		    circle( drawing, center[i], (int)radius[i], color, 2, 8, 0 );
+
+		    
+			cout << int(center[i].x) << "\t" << int(center[i].y) << endl;
 		}
 		
 		namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
@@ -179,8 +182,6 @@ int main(int argc, char* argv[]){
 		{
 			break; 
 		}
-
-		cout << contours.size() << endl;
 	}
 
 	return 0;
