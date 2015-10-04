@@ -53,6 +53,7 @@
 #define OUTPUT_READABLE_YAWPITCHROLL
 
 #define MIN_SIGNAL 1000
+<<<<<<< HEAD
 #define LOOPTIME 100
 #define START_SPEED 1740
 #define SAMPLE_TIME 10
@@ -68,6 +69,23 @@
 #define UPPER_LIMIT_YAW 70
 #define LOWER_LIMIT_PR -45   // The lowest possible output that the PID can produce
 #define UPPER_LIMIT_PR 45 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
+=======
+#define LOOPTIME 10
+#define START_SPEED 1745
+#define SAMPLE_TIME 10
+
+#define KP_PR 7.05
+#define KI_PR 0.0
+#define KD_PR 0.9
+#define KP_YAW 6.0
+#define KI_YAW 2.3
+#define KD_YAW 0.0
+
+#define LOWER_LIMIT_YAW -39
+#define UPPER_LIMIT_YAW 39
+#define LOWER_LIMIT_PR -48   // The lowest possible output that the PID can produce
+#define UPPER_LIMIT_PR 48 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
+>>>>>>> 894a6bf49a04634c30e31541218b45e80fd78726
 
 MPU6050 mpu;
 
@@ -270,6 +288,7 @@ void get_ypr(){
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
             ypr0 = (ypr[0] * 180/M_PI)+180;
+<<<<<<< HEAD
             ypr1 = (ypr[1] * 180/M_PI)-2.80;
             ypr2 = (ypr[2] * 180/M_PI)-2.24;
             if(ypr0 > 360){
@@ -278,6 +297,10 @@ void get_ypr(){
             else if (ypr0 < 0){
                 ypr0 +=360;
             }
+=======
+            ypr1 = (ypr[1] * 180/M_PI)-2.27;
+            ypr2 = (ypr[2] * 180/M_PI)-2.02;
+>>>>>>> 894a6bf49a04634c30e31541218b45e80fd78726
         #endif
     }
 }
@@ -306,7 +329,7 @@ void setup(){
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
         Wire.begin();
-        TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+        TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
     #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
         Fastwire::setup(400, true);
     #endif
@@ -368,7 +391,11 @@ void loop() {
 
     // wait for MPU interrupt or extra packet(s) available
     if (!mpuInterrupt){
+<<<<<<< HEAD
         if (counter == 50){
+=======
+        if (counter == 45){
+>>>>>>> 894a6bf49a04634c30e31541218b45e80fd78726
             serial_read();
             counter=0;
         }

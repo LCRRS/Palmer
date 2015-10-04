@@ -61,7 +61,11 @@
 #define KI_PR 0.0
 #define KD_PR 0.9
 #define KP_YAW 6.0
+<<<<<<< HEAD
 #define KI_YAW 0.0
+=======
+#define KI_YAW 2.3
+>>>>>>> 894a6bf49a04634c30e31541218b45e80fd78726
 #define KD_YAW 0.0
 
 #define LOWER_LIMIT_YAW -39
@@ -69,8 +73,11 @@
 #define LOWER_LIMIT_PR -48   // The lowest possible output that the PID can produce
 #define UPPER_LIMIT_PR 48 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 894a6bf49a04634c30e31541218b45e80fd78726
 MPU6050 mpu;
 
 Servo myservo1;
@@ -245,10 +252,17 @@ void setup(){
                 delay(10);
             }
             initiation_count = true;
+<<<<<<< HEAD
             myservo1.writeMicroseconds(START_SPEED);
             myservo2.writeMicroseconds(START_SPEED);
             myservo3.writeMicroseconds(START_SPEED);
             myservo4.writeMicroseconds(START_SPEED);
+=======
+            myservo1.writeMicroseconds(START_SPEED));
+            myservo2.writeMicroseconds(START_SPEED));
+            myservo3.writeMicroseconds(START_SPEED));
+            myservo4.writeMicroseconds(START_SPEED));
+>>>>>>> 894a6bf49a04634c30e31541218b45e80fd78726
         }
     }
 }
@@ -310,8 +324,11 @@ void loop() {
         myservo4.writeMicroseconds(speed_myservo4);
     }
 
+<<<<<<< HEAD
     Serial.println(speed_myservo1);
 
+=======
+>>>>>>> 894a6bf49a04634c30e31541218b45e80fd78726
     // reset interrupt flag and get INT_STATUS byte
     mpuInterrupt = false;
     mpuIntStatus = mpu.getIntStatus();
@@ -343,8 +360,13 @@ void loop() {
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
             ypr0 = (ypr[0] * 180/M_PI)+180;
+<<<<<<< HEAD
             ypr1 = (ypr[1] * 180/M_PI)-2.87;
             ypr2 = (ypr[2] * 180/M_PI)-2.58;
+=======
+            ypr1 = (ypr[1] * 180/M_PI)-2.27;
+            ypr2 = (ypr[2] * 180/M_PI)-2.02;
+>>>>>>> 894a6bf49a04634c30e31541218b45e80fd78726
         #endif
     }
 }
