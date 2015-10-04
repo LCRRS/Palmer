@@ -80,13 +80,7 @@ int main(int argc, char* argv[]){
 
 	VideoCapture source1(1);
 	VideoCapture source2(0);
-	if (!source1.isOpened())  // if not success, exit program
-		{
-			cout << "Did you forget to switch the camera # ???" << endl;
-			return -1;
-		}
-
-	if (!source2.isOpened())  // if not success, exit program
+	if (!source1.isOpened() && !source2.isOpened())  // if not success, exit program
 		{
 			cout << "Did you forget to switch the camera # ???" << endl;
 			return -1;
@@ -104,51 +98,53 @@ int main(int argc, char* argv[]){
 	namedWindow("HSV",CV_WINDOW_AUTOSIZE);
 	namedWindow("Thresholding",CV_WINDOW_AUTOSIZE);
 
-	RNG rng(12345);
-
 	while(true){
 		
 		myPID.Compute();
 
 		Mat frame1;
-		source1 >> frame1;
-		bool Success1 = source1.read(frame1);
-		if (!Success1) //if not success, break loop
-		{
-			cout << "Sorry forgot how to camera.read on 1st" << endl;
-			break;
-		}
-
 		Mat frame2;
+
+		source1 >> frame1;
 		source2 >> frame2;
+
+		bool Success1 = source1.read(frame1);
 		bool Success2 = source2.read(frame2);
-		if (!Success2) //if not success, break loop
+
+		if (!Success2 || !Success1) //if not success, break loop
 		{
-			cout << "Sorry forgot how to camera.read on 2nd" << endl;
+			cout << "Sorry forgot how to camera.read" << endl;
 			break;
 		}
 
 		/* HSV PROCESSING */
 
-		Mat imageHSV;
+		Mat image1HSV;
+		Mat image2HSV;
 		cvtColor(frame1, imageHSV, COLOR_BGR2HSV);		// Conversion from BGR to HSV
+		cvtColor(frame2, imageHSV, COLOR_BGR2HSV);		// Conversion from BGR to HSV
 
 		/* THRESHOLDING */
 
-		Mat imageTHR;
-
-		inRange(imageHSV, Scalar(lowH, lowS, lowV), Scalar(highH, highS, highV), imageTHR);
+		Mat image1THR;
+		Mat image2THR;
+		inRange(image1HSV, Scalar(lowH, lowS, lowV), Scalar(highH, highS, highV), imageTHR);
+		inRange(image2HSV, Scalar(lowH, lowS, lowV), Scalar(highH, highS, highV), imageTHR);
 
 		/* OPENING EROSION/DILUTION */
 
-		erode(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
-		dilate(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
+		erode(image1THR, image1THR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
+		erode(image2THR, image2THR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
+		dilate(image1THR, image1THR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
+		dilate(image2THR, image2THR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
 
 
 		/* CLOSING EROSION/DILUTION */
 
-		dilate(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8))); 
-		erode(imageTHR, imageTHR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
+		dilate(image1THR, image1THR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
+		dilate(image2THR, image2THR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8))); 
+		erode(image1THR, image1THR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
+		erode(image2THR, image2THR, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)));
 
 
 		/* PREPPING THE CONTOURS */
