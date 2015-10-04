@@ -36,8 +36,6 @@ using namespace std;
 =============== GENERAL DEFINITIONS ==============
 ================================================*/
 
-
-
 int center_frame[2] = {320,240};    // The (x,y) coordinates of the center of the frame with the resolution 640*480
 
 int radius_frame = 90;        // The minimum desired radius of the object being tracked
@@ -55,8 +53,6 @@ float Kd_hor = 0.03;               // Derivative constant for the PID calculatio
 float Upper_Limit_hor = 10.0;       // Upper limit for the PID output of the distance correction
 float Lower_Limit_hor = -10.0;     // Lower limit for the PID output of the distance correction
 
-
-
 int lowH = 35;
 int highH = 60;
 
@@ -68,13 +64,15 @@ int highV = 255;
 
 int largest_area = 15000;
 int largest_contour_index;
-cv::Rect bounding_rect;
 
 int thresh = 100;
 int max_thresh = 255;
 
-
 PID myPID(&PID_input_hor,&PID_output_hor,&Setpoint_hor,Kp_hor,Ki_hor,Kd_hor);
+
+/*================================================
+=============== MAIN CALCULATIONS ================
+================================================*/
 
 int main(int argc, char* argv[]){
 
