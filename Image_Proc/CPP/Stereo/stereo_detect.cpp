@@ -65,8 +65,10 @@ int highV = 255;
 int largest_area = 15000;
 int largest_contour_index;
 
-int thresh = 100;
-int max_thresh = 255;
+int thresh1 = 100;
+int max_thresh1 = 255;
+int thresh2 = 100;
+int max_thresh2 = 255;
 
 PID myPID(&PID_input_hor,&PID_output_hor,&Setpoint_hor,Kp_hor,Ki_hor,Kd_hor);
 
@@ -121,15 +123,15 @@ int main(int argc, char* argv[]){
 
 		Mat image1HSV;
 		Mat image2HSV;
-		cvtColor(frame1, imageHSV, COLOR_BGR2HSV);		// Conversion from BGR to HSV
-		cvtColor(frame2, imageHSV, COLOR_BGR2HSV);		// Conversion from BGR to HSV
+		cvtColor(frame1, image1HSV, COLOR_BGR2HSV);		// Conversion from BGR to HSV
+		cvtColor(frame2, image2HSV, COLOR_BGR2HSV);		// Conversion from BGR to HSV
 
 		/* THRESHOLDING */
 
 		Mat image1THR;
 		Mat image2THR;
-		inRange(image1HSV, Scalar(lowH, lowS, lowV), Scalar(highH, highS, highV), imageTHR);
-		inRange(image2HSV, Scalar(lowH, lowS, lowV), Scalar(highH, highS, highV), imageTHR);
+		inRange(image1HSV, Scalar(lowH, lowS, lowV), Scalar(highH, highS, highV), image1THR);
+		inRange(image2HSV, Scalar(lowH, lowS, lowV), Scalar(highH, highS, highV), image2THR);
 
 		/* OPENING EROSION/DILUTION */
 
@@ -152,44 +154,69 @@ int main(int argc, char* argv[]){
 		/* BETTER KEEP THOSE REFERENCES AND POINTERS RIGHT */
 		/* REALLY DOES MESS THINGS UP A LOT OF TIMES */
 
-		vector<vector<Point> > contours;
-		vector<Vec4i> hierarchy;
+		vector<vector<Point> > contours1;
+		vector<Vec4i> hierarchy1;
+		Mat canny_output1;
 
-		Mat canny_output;
+		vector<vector<Point> > contours2;
+		vector<Vec4i> hierarchy2;
+		Mat canny_output2;
 
 		/// Detect edges using canny
-		Canny(imageTHR, canny_output, thresh, thresh*2, 3 );
+		Canny(image1THR, canny_output1, thresh1, thresh1*2, 3 );
+		Canny(image2THR, canny_output2, thresh2, thresh2*2, 3 );
 		/// Find contours
-		findContours(canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+		findContours(canny_output1, contours1, hierarchy1, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+		findContours(canny_output2, contours2, hierarchy2, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
 
-		vector<vector<Point>> contours_poly(contours.size());
-  		vector<Point2f> center(contours.size());
-  		vector<float> radius(contours.size());
+		vector<vector<Point>> contours_poly1(contours1.size());
+  		vector<Point2f> center1(contours1.size());
+  		vector<float> radius1(contours1.size());
+
+  		vector<vector<Point>> contours_poly2(contours2.size());
+  		vector<Point2f> center2(contours2.size());
+  		vector<float> radius2(contours2.size());
 
 
-		for( int i = 0; i < contours.size(); i++ )
+		for( int i = 0; i < contours1.size(); i++ )
 	    {
-	        minEnclosingCircle( Mat (contours[i]), center[i], radius[i] );
-	        cout << int(center[i].x) << "\t" << int(center[i].y) << endl;
+	        minEnclosingCircle( Mat (contours1[i]), center1[i], radius1[i] );
+	        cout << int(center1[i].x) << "\t" << int(center1[i].y) << endl;
+	        
 	    }
+
+	    for( int i = 0; i < contours2.size(); i++ )
+	    {
+	        minEnclosingCircle( Mat (contours2[i]), center2[i], radius2[i] );
+	        cout << int(center2[i].x) << "\t" << int(center2[i].y) << endl;
+	        
+	    }	    
 
 	    Scalar color = Scalar(255,255,255);
 
-		Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
-		for( int i = 0; i< contours.size(); i++ )
+		Mat drawing1 = Mat::zeros( canny_output1.size(), CV_8UC3 );
+		Mat drawing2 = Mat::zeros( canny_output2.size(), CV_8UC3 );
+		for( int i = 0; i< contours1.size(); i++ )
 		{
-		    circle( drawing, center[i], (int)radius[i], color, 2, 8, 0 );
+		    circle( drawing1, center1[i], (int)radius1[i], color, 2, 8, 0 );
+		}
+
+		for( int i = 0; i< contours2.size(); i++ )
+		{
+		    circle( drawing2, center2[i], (int)radius2[i], color, 2, 8, 0 );
 		}
 		
 		namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
-		imshow( "Contours", drawing );
+		imshow( "Contours", drawing1 );
+		namedWindow( "Contours2", CV_WINDOW_AUTOSIZE );
+		imshow( "Contours2", drawing2 );
 
 		/* Displaying all three outputs */
 		
 		imshow("Original", frame1);
 		imshow("2nd", frame2);
-		imshow("HSV", imageHSV);
-		imshow("Thresholding", imageTHR);
+		imshow("HSV", image1HSV);
+		imshow("Thresholding", image1THR);
 
 		if (waitKey(30) == 27)
 		{
