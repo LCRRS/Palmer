@@ -22,24 +22,24 @@
 ==  The M#-P# represent the Arduino Pins ==
 ==  to which respective ESC is attached  ==
 ===========================================
-                yaw ---> +
-          pitch -           roll +
-            CW               CCW
-          M1-P6             M2-P9
-             \    FORWARD    /
-              \      ^      /
-               \     |     /
-                \ _______ /
-                 |CENTRAL|
-                 |CONTROL|
-                 |_______|
-                /         \
-               /           \
-              /             \
-             /               \
-          M4-P11           M3-P10
-           CCW               CW
-          roll -           pitch +
+				yaw ---> +
+		  pitch -           roll +
+			CW               CCW
+		  M1-P6             M2-P9
+			 \    FORWARD    /
+			  \      ^      /
+			   \     |     /
+				\ _______ /
+				 |CENTRAL|
+				 |CONTROL|
+				 |_______|
+				/         \
+			   /           \
+			  /             \
+			 /               \
+		  M4-P11           M3-P10
+		   CCW               CW
+		  roll -           pitch +
 ==========================================*/
 #include <PID_v1.h>
 #include <Servo.h>
@@ -47,7 +47,7 @@
 #include <MPU6050_6Axis_MotionApps20.h>
 
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-    #include "Wire.h"
+	#include "Wire.h"
 #endif
 
 #define OUTPUT_READABLE_YAWPITCHROLL
@@ -119,32 +119,34 @@ PID myPID_yaw(&pid_input_yaw, &pid_output_yaw, &pid_setPoint_yaw, KP_YAW, KI_YAW
 PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint_pitch, KP_PR, KI_PR, KD_PR, DIRECT);
 PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint_roll, KP_PR, KI_PR, KD_PR, DIRECT);        //PID class object that is associated with respected variables for the roll plane
 
+int takeoff_speed = START_SPEED; // Initializing the takeoff variables
+
 /*=============================================
 ======          AIR STABILIZATION        ======
 =============================================*/
 
 void stabilize(float current_speed){
 
-    pid_input_yaw = ypr0;
-    pid_input_pitch = ypr1;
-    pid_input_roll = ypr2;
+	pid_input_yaw = ypr0;
+	pid_input_pitch = ypr1;
+	pid_input_roll = ypr2;
 
-    myPID_yaw.Compute(&pid_setPoint_yaw);
-    myPID_pitch.Compute(&pid_setPoint_pitch);
-    myPID_roll.Compute(&pid_setPoint_roll);
+	myPID_yaw.Compute(&pid_setPoint_yaw);
+	myPID_pitch.Compute(&pid_setPoint_pitch);
+	myPID_roll.Compute(&pid_setPoint_roll);
 
-    // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
-    // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
+	// Speed is being calculated from the preset base_speed compensated with the respective pid oututs
+	// and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
 
-    speed_myservo1 = current_speed - pid_output_pitch - pid_output_yaw;
-    speed_myservo2 = current_speed + pid_output_roll + pid_output_yaw;
-    speed_myservo3 = current_speed + pid_output_pitch - pid_output_yaw;
-    speed_myservo4 = current_speed - pid_output_roll + pid_output_yaw;
+	speed_myservo1 = current_speed - pid_output_pitch - pid_output_yaw;
+	speed_myservo2 = current_speed + pid_output_roll + pid_output_yaw;
+	speed_myservo3 = current_speed + pid_output_pitch - pid_output_yaw;
+	speed_myservo4 = current_speed - pid_output_roll + pid_output_yaw;
 
-    indivSpeed(myservo1, speed_myservo1);
-    indivSpeed(myservo2, speed_myservo2);
-    indivSpeed(myservo3, speed_myservo3);
-    indivSpeed(myservo4, speed_myservo4);
+	indivSpeed(myservo1, speed_myservo1);
+	indivSpeed(myservo2, speed_myservo2);
+	indivSpeed(myservo3, speed_myservo3);
+	indivSpeed(myservo4, speed_myservo4);
 }
 
 /*=================================================
@@ -153,26 +155,26 @@ void stabilize(float current_speed){
 
 void serial_read() {
 
-    int new_val = Serial.parseInt();
-    pi_data = new_val;
+	int new_val = Serial.parseInt();
+	pi_data = new_val;
 
 
-    /*
-    The point of the following if statements is to stop the ypr0 values from updating when we are
-    not receiving values from the pi.  This is to prevent drifting in the yaw axis when the pi values are not present.
-    */
-    if(pi_data <= 1 && pi_data >= -1){ //Check if receiving values
-        if(yaw_orientation_update != false){ //check if this is the first cycle without a value
-            pid_setPoint_yaw = ypr0;  //Since this is the first cycle, take the current value to keep until we get another reading from the pi
-            yaw_orientation_update = false; //since not receiving values, keep old ypr0
-        }
-    }
-    else{
-        pid_setPoint_yaw = ypr0 + pi_data; //if an object is being tracked sets the new pid target value
-        yaw_orientation_update = true; //since receiving values, update ypr0
-    }
-    pid_setPoint_pitch = 0;
-    pid_setPoint_roll = 0;
+	/*
+	The point of the following if statements is to stop the ypr0 values from updating when we are
+	not receiving values from the pi.  This is to prevent drifting in the yaw axis when the pi values are not present.
+	*/
+	if(pi_data <= 1 && pi_data >= -1){ //Check if receiving values
+		if(yaw_orientation_update != false){ //check if this is the first cycle without a value
+			pid_setPoint_yaw = ypr0;  //Since this is the first cycle, take the current value to keep until we get another reading from the pi
+			yaw_orientation_update = false; //since not receiving values, keep old ypr0
+		}
+	}
+	else{
+		pid_setPoint_yaw = ypr0 + pi_data; //if an object is being tracked sets the new pid target value
+		yaw_orientation_update = true; //since receiving values, update ypr0
+	}
+	pid_setPoint_pitch = 0;
+	pid_setPoint_roll = 0;
 }
 
 /*============================================================
@@ -180,26 +182,26 @@ void serial_read() {
 ============================================================*/
 
 void warmup(){
-    myPID_yaw.SetOutputLimits(LOWER_LIMIT_YAW, UPPER_LIMIT_YAW);
-    myPID_pitch.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
-    myPID_roll.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
+	myPID_yaw.SetOutputLimits(LOWER_LIMIT_YAW, UPPER_LIMIT_YAW);
+	myPID_pitch.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
+	myPID_roll.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
 
-    myPID_yaw.SetSampleTime(SAMPLE_TIME); //Time to pass between the values of PID are recomputed (in milliseconds)
-    myPID_pitch.SetSampleTime(SAMPLE_TIME);
-    myPID_roll.SetSampleTime(SAMPLE_TIME);
+	myPID_yaw.SetSampleTime(SAMPLE_TIME); //Time to pass between the values of PID are recomputed (in milliseconds)
+	myPID_pitch.SetSampleTime(SAMPLE_TIME);
+	myPID_roll.SetSampleTime(SAMPLE_TIME);
 
-    while (!initiation_count){
-        serial_read();
-        if (pi_data == 11){
-            for (int speed = 1000; speed < BASE_SPEED; speed++){
-                setSpeed(speed);
-                delay(10);
-            }
-            initiation_count = true;
-            setSpeed(START_SPEED);
-            setSpeed(TAKEOFF_SPEED);
-        }
-    }
+	while (!initiation_count){
+		serial_read();
+		if (pi_data == 11){
+			for (int speed = 1000; speed < BASE_SPEED; speed++){
+				setSpeed(speed);
+				delay(10);
+			}
+			initiation_count = true;
+			setSpeed(START_SPEED);
+			setSpeed(TAKEOFF_SPEED);
+		}
+	}
 }
 
 /*==============================================================
@@ -210,16 +212,16 @@ void warmup(){
 ==============================================================*/
 
 void takeoff(){
-    get_ypr();
-    pid_input_yaw = ypr0;
-    pid_input_pitch = ypr1;
-    pid_input_roll = ypr2;
-    if(ypr1 < -2 || ypr1 > 2 || ypr2 <-2 || ypr2 > 2){
-        stabilize(takeoff_speed);
-    }
-    else{
-        takeoff_speed++;
-    }
+	get_ypr();
+	pid_input_yaw = ypr0;
+	pid_input_pitch = ypr1;
+	pid_input_roll = ypr2;
+	if(ypr1 < -2 || ypr1 > 2 || ypr2 <-2 || ypr2 > 2){
+		stabilize(takeoff_speed);
+	}
+	else{
+		takeoff_speed++;
+	}
 
 }
 
@@ -231,10 +233,10 @@ void takeoff(){
 ==============================================================*/
 
 void setSpeed(float speed){
-    myservo1.writeMicroseconds(speed);
-    myservo2.writeMicroseconds(speed);
-    myservo3.writeMicroseconds(speed);
-    myservo4.writeMicroseconds(speed);
+	myservo1.writeMicroseconds(speed);
+	myservo2.writeMicroseconds(speed);
+	myservo3.writeMicroseconds(speed);
+	myservo4.writeMicroseconds(speed);
 }
 
 /*==============================================================
@@ -246,7 +248,7 @@ void setSpeed(float speed){
 ==============================================================*/
 
 void indivSpeed(Servo servo, float speed){
-    servo.writeMicroseconds(speed);
+	servo.writeMicroseconds(speed);
 }
 
 /*==============================================================
@@ -255,7 +257,7 @@ void indivSpeed(Servo servo, float speed){
 
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
 void dmpDataReady(){
-    mpuInterrupt = true;
+	mpuInterrupt = true;
 }
 
 /*==============================================================
@@ -263,41 +265,41 @@ void dmpDataReady(){
 ==============================================================*/
 
 void get_ypr(){
-    // reset interrupt flag and get INT_STATUS byte
-    mpuInterrupt = false;
-    mpuIntStatus = mpu.getIntStatus();
+	// reset interrupt flag and get INT_STATUS byte
+	mpuInterrupt = false;
+	mpuIntStatus = mpu.getIntStatus();
 
-    // get current FIFO count
-    fifoCount = mpu.getFIFOCount();
+	// get current FIFO count
+	fifoCount = mpu.getFIFOCount();
 
-    // check for overflow (this should never happen unless our code is too inefficient)
-    if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
-        // reset so we can continue cleanly
-        mpu.resetFIFO();
+	// check for overflow (this should never happen unless our code is too inefficient)
+	if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
+		// reset so we can continue cleanly
+		mpu.resetFIFO();
 
-    // otherwise, check for DMP data ready interrupt (this should happen frequently)
-    } else if (mpuIntStatus & 0x02) {
-        // wait for correct available data length, should be a VERY short wait
-        while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
+	// otherwise, check for DMP data ready interrupt (this should happen frequently)
+	} else if (mpuIntStatus & 0x02) {
+		// wait for correct available data length, should be a VERY short wait
+		while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
 
-        // read a packet from FIFO
-        mpu.getFIFOBytes(fifoBuffer, packetSize);
+		// read a packet from FIFO
+		mpu.getFIFOBytes(fifoBuffer, packetSize);
 
-        // track FIFO count here in case there is > 1 packet available
-        // (this lets us immediately read more without waiting for an interrupt)
-        fifoCount -= packetSize;
+		// track FIFO count here in case there is > 1 packet available
+		// (this lets us immediately read more without waiting for an interrupt)
+		fifoCount -= packetSize;
 
-        #ifdef OUTPUT_READABLE_YAWPITCHROLL
-            // display Euler angles in degrees
-            mpu.dmpGetQuaternion(&q, fifoBuffer);
-            mpu.dmpGetGravity(&gravity, &q);
-            mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+		#ifdef OUTPUT_READABLE_YAWPITCHROLL
+			// display Euler angles in degrees
+			mpu.dmpGetQuaternion(&q, fifoBuffer);
+			mpu.dmpGetGravity(&gravity, &q);
+			mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
-            ypr0 = (ypr[0] * 180/M_PI)+180;
-            ypr1 = (ypr[1] * 180/M_PI)-2.27;
-            ypr2 = (ypr[2] * 180/M_PI)-2.02;
-        #endif
-    }
+			ypr0 = (ypr[0] * 180/M_PI)+180;
+			ypr1 = (ypr[1] * 180/M_PI)-2.27;
+			ypr2 = (ypr[2] * 180/M_PI)-2.02;
+		#endif
+	}
 }
 
 /*==============================================================
@@ -305,101 +307,100 @@ void get_ypr(){
 ==============================================================*/
 
 void setup(){
-    Serial.begin(115200);
-    pid_input_yaw = ypr0;
-    pid_input_pitch = ypr1;
-    pid_input_roll = ypr2;
+	Serial.begin(115200);
+	pid_input_yaw = ypr0;
+	pid_input_pitch = ypr1;
+	pid_input_roll = ypr2;
 
-    myservo1.attach(6, 1000, 2000);
-    myservo2.attach(9, 1000, 2000);
-    myservo3.attach(10, 1000, 2000);
-    myservo4.attach(11, 1000, 2000);
+	myservo1.attach(6, 1000, 2000);
+	myservo2.attach(9, 1000, 2000);
+	myservo3.attach(10, 1000, 2000);
+	myservo4.attach(11, 1000, 2000);
 
-    myservo1.writeMicroseconds(MIN_SIGNAL);
-    myservo2.writeMicroseconds(MIN_SIGNAL);
-    myservo3.writeMicroseconds(MIN_SIGNAL);
-    myservo4.writeMicroseconds(MIN_SIGNAL);
-    delay(4000);
+	myservo1.writeMicroseconds(MIN_SIGNAL);
+	myservo2.writeMicroseconds(MIN_SIGNAL);
+	myservo3.writeMicroseconds(MIN_SIGNAL);
+	myservo4.writeMicroseconds(MIN_SIGNAL);
+	delay(4000);
 
-    // join I2C bus (I2Cdev library doesn't do this automatically)
-    #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-        Wire.begin();
-        TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
-    #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
-        Fastwire::setup(400, true);
-    #endif
+	// join I2C bus (I2Cdev library doesn't do this automatically)
+	#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+		Wire.begin();
+		TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+	#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+		Fastwire::setup(400, true);
+	#endif
 
-    while (!Serial);
+	while (!Serial);
 
-    // initialize device
-    mpu.initialize();
+	// initialize device
+	mpu.initialize();
 
-    // verify connection
-    mpu.testConnection();
+	// verify connection
+	mpu.testConnection();
 
-    devStatus = mpu.dmpInitialize();
+	devStatus = mpu.dmpInitialize();
 
-    // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(-8);
-    mpu.setYGyroOffset(-75);
-    mpu.setZGyroOffset(11);
-    mpu.setZAccelOffset(1063); // 1688 factory default for my test chip
+	// supply your own gyro offsets here, scaled for min sensitivity
+	mpu.setXGyroOffset(-8);
+	mpu.setYGyroOffset(-75);
+	mpu.setZGyroOffset(11);
+	mpu.setZAccelOffset(1063); // 1688 factory default for my test chip
 
-    // make sure it worked (returns 0 if so)
-    if (devStatus == 0){
-        // turn on the DMP, now that it's ready
-        mpu.setDMPEnabled(true);
+	// make sure it worked (returns 0 if so)
+	if (devStatus == 0){
+		// turn on the DMP, now that it's ready
+		mpu.setDMPEnabled(true);
 
-        // enable Arduino interrupt detection
+		// enable Arduino interrupt detection
 
-        attachInterrupt(0, dmpDataReady, RISING);
+		attachInterrupt(0, dmpDataReady, RISING);
 
-        mpuIntStatus = mpu.getIntStatus();
+		mpuIntStatus = mpu.getIntStatus();
 
-        // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        dmpReady = true;
+		// set our DMP Ready flag so the main loop() function knows it's okay to use it
+		dmpReady = true;
 
-        // get expected DMP packet size for later comparison
-        packetSize = mpu.dmpGetFIFOPacketSize();
-    }
+		// get expected DMP packet size for later comparison
+		packetSize = mpu.dmpGetFIFOPacketSize();
+	}
 
-    myPID_yaw.SetMode(AUTOMATIC);
-    myPID_roll.SetMode(AUTOMATIC);
-    myPID_pitch.SetMode(AUTOMATIC);
-    mpu.setRate(0x00);
+	myPID_yaw.SetMode(AUTOMATIC);
+	myPID_roll.SetMode(AUTOMATIC);
+	myPID_pitch.SetMode(AUTOMATIC);
+	mpu.setRate(0x00);
 
-    bool cat = false;
-    while(!cat) {
-        serial_read();
-        if (pi_data == 11) {
-            cat = true;
-        }
-    }
-    warmup();
-    int takeoff_speed = TAKEOFF_SPEED;
-    while(takeoff_speed != BASE_SPEED){
-        takeoff();
-    }
+	bool cat = false;
+	while(!cat) {
+		serial_read();
+		if (pi_data == 11) {
+			cat = true;
+		}
+	}
+	warmup();
+	while(takeoff_speed != BASE_SPEED){
+		takeoff();
+	}
 }
 
 int counter = 0;
 
 void loop() {
-    // if programming failed, don't try to do anything
-    if (!dmpReady) return;
+	// if programming failed, don't try to do anything
+	if (!dmpReady) return;
 
-    // wait for MPU interrupt or extra packet(s) available
-    if (!mpuInterrupt){
-        if (counter == 45){
-            serial_read();
-            counter=0;
-        }
-        else{
-            counter++;
-        }
+	// wait for MPU interrupt or extra packet(s) available
+	if (!mpuInterrupt){
+		if (counter == 45){
+			serial_read();
+			counter=0;
+		}
+		else{
+			counter++;
+		}
 
-        stabilize(BASE_SPEED);
-    }
-    get_ypr();
+		stabilize(BASE_SPEED);
+	}
+	get_ypr();
 
 }
