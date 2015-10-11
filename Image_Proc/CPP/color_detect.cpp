@@ -143,33 +143,33 @@ int main(int argc, char* argv[]){
 		findContours(canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) ); // Find contours
 
 		vector<vector<Point>> contours_poly(contours.size());
-  		vector<Point2f> center(contours.size());
-  		vector<float> radius(contours.size());
-  		Point2f center1;
-  		float radius1;
+		vector<Point2f> center(contours.size());
+		vector<float> radius(contours.size());
+		Point2f center1;
+		float radius1;
 
-  		int largest_contour_index=0;
-  		double largest_area = 0;
+		int largest_contour_index = 0;
+		double largest_area = 0;
 
-  		if(contours.size()>0){
+		if(contours.size()>0){
 
 			for( int i = 0; i < contours.size(); i++ )
-		    {
-		    	double area = contourArea(contours[i],false);
-		    	if(area>largest_area){
-		    		largest_area = area;
-		    		largest_contour_index = i;
-		    	}
-		    	if(i == contours.size()-1){
-		    		minEnclosingCircle( Mat (contours[largest_contour_index]), center1, radius1 ); // Allows better estimation of the real size of the object, independent of the rotation
-		        	cout << int(center1.x) << "\t" << int(center1.y) << endl;
-		        	//serial_port << contours.size() << "\n";
-		    	}
-		    }
+			{
+				double area = contourArea(contours[i],false);
+				if(area>largest_area){
+					largest_area = area;
+					largest_contour_index = i;
+				}
+				if(i == contours.size()-1){
+					minEnclosingCircle( Mat (contours[largest_contour_index]), center1, radius1 ); // Allows better estimation of the real size of the object, independent of the rotation
+					cout << int(center1.x) << "\t" << int(center1.y) << endl;
+					//serial_port << contours.size() << "\n";
+				}
+			}
 		}
 
-	    /*==================================================================
-	    ========================	  VISUALS		========================
+		/*==================================================================
+		========================	  VISUALS		========================
 		====================================================================
 		============  Uncomment the following code in order	================
 		============	to see the visual representation	================

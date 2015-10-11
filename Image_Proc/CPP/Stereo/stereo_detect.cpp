@@ -89,6 +89,21 @@ int max_thresh1 = 255;
 int thresh2 = 100;
 int max_thresh2 = 255;
 
+/*===================================================
+========= STEREOSCOPIC DISTANCE TO OBJECT ===========
+=====================================================
+=== Ensure both cameras are positioned correctly. ===
+========  Make sure to update the distance 	=========
+============= values to fit your setup. =============
+===================================================*/
+
+int approximateDistance(int first_centerx, int second_centerx){
+	int distance_object = 0;	// Calculated distance to the object
+	int distance_camera = 10;	// Predefined distance between two cameras
+	distance_object = first_center - second_center
+	return distance_object;
+}
+
 /*================================================
 =============== MAIN CALCULATIONS ================
 ================================================*/
@@ -97,7 +112,7 @@ int main(int argc, char* argv[]){
 
 	SerialStream serial_port;			// Initialize Serial instance
 	serial_port.Open("/dev/ttyACM0");	// Binding Serial to the Port
-	serial_port.SetBaudRate( SerialStreamBuf::BAUD_9600 );	//Baud rate specification
+	serial_port.SetBaudRate( SerialStreamBuf::BAUD_115200);	//Baud rate specification
 	serial_port.SetVTime(1);	// Input Flow Control. Time to wait for data in tenths of a second
 	serial_port.SetVMin(0);		// Input Flow Control. Minimum number of characters to read
 
@@ -190,15 +205,15 @@ int main(int argc, char* argv[]){
 	    {
 	        minEnclosingCircle( Mat (contours1[i]), center1[i], radius1[i] );
 	        cout << int(center1[i].x) << "\t" << int(center1[i].y) << endl;
-	        
 	    }
 
 	    for( int i = 0; i < contours2.size(); i++ )
 	    {
 	        minEnclosingCircle( Mat (contours2[i]), center2[i], radius2[i] );
 	        cout << int(center2[i].x) << "\t" << int(center2[i].y) << endl;
-	        
-	    }	    
+	    }
+	    // UNCOMMENT TO ENABLE SERIAL COMMUNICATION
+	    // serial_port << approximateDistance(int(center1[0].x),int(center2[0].x)) << "\n";
 
 	 	// Scalar color = Scalar(255,255,255);
 		// Mat drawing1 = Mat::zeros( canny_output1.size(), CV_8UC3 );
