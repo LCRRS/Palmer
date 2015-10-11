@@ -1,5 +1,11 @@
 /*===============================================================
 =================         COLOR TRACKING          ===============
+=================================================================
+===== The following program is intended for color detection =====
+===== and data transmission between a Unix-based operating  =====
+============	system and Arduino microprocessor.	=============
+===== Please ensure that you have opencv package installed ======
+=================== 	as well as LibSerial. 	=================
 ===============================================================*/
 
 #include "opencv2/core/core.hpp"
