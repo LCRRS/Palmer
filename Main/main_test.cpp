@@ -54,8 +54,9 @@
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 10
-#define START_SPEED 1450 // Speed at which the thrust is not yet sufficient to lift up the drone
-#define BASE_SPEED 1745 //standard operational speed of the drone
+#define START_SPEED 1450    // Speed at which the thrust is not yet sufficient to lift up the drone
+#define BASE_SPEED 1745     // Standard operational speed of the drone
+#define TAKEOFF_SPEED 1650  // Speed at which the drone has suddenly taken off the ground
 #define SAMPLE_TIME 10
 
 #define KP_PR 7.05
@@ -195,7 +196,8 @@ void warmup(){
                 delay(10);
             }
             initiation_count = true;
-            setSpeed(BASE_SPEED);
+            setSpeed(START_SPEED);
+            setSpeed(TAKEOFF_SPEED);
         }
     }
 }
@@ -374,7 +376,7 @@ void setup(){
         }
     }
     warmup();
-    int takeoff_speed = START_SPEED;
+    int takeoff_speed = TAKEOFF_SPEED;
     while(takeoff_speed != BASE_SPEED){
         takeoff();
     }
