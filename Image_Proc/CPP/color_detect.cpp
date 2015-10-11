@@ -168,7 +168,7 @@ int main(int argc, char* argv[]){
 		// namedWindow("Thresholding",CV_WINDOW_AUTOSIZE);
 		// namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
 		// imshow( "Contours", drawing );		
-		// imshow("Original", frame);
+		// imshow("Original", original_frame);
 		// imshow("HSV", imageHSV);
 		// imshow("Thresholding", imageTHR);
 
