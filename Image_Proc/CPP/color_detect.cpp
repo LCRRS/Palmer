@@ -3,7 +3,7 @@
 =================================================================
 ===== The following program is intended for color detection =====
 ===== and data transmission between a Unix-based operating  =====
-============	system and Arduino microprocessor.	=============
+============	system and Arduino microcontroller.	=============
 ===== Please ensure that you have opencv package installed ======
 =================== 	as well as LibSerial. 	=================
 ===============================================================*/
@@ -82,8 +82,6 @@ int highS = 255;		//High pass value for Saturation
 int lowV = 50;			//Low pass value for Value
 int highV = 255;		//High pass value for Value
 
-int largest_area = 15000;
-int largest_contour_index;
 int thresh = 100;
 int max_thresh = 255;
 
@@ -91,7 +89,7 @@ int main(int argc, char* argv[]){
 
 	SerialStream serial_port;			// Initialize Serial instance
 	serial_port.Open("/dev/ttyACM0");	// Binding Serial to the Port
-	serial_port.SetBaudRate( SerialStreamBuf::BAUD_9600 );	//Baud rate specification
+	serial_port.SetBaudRate( SerialStreamBuf::BAUD_115200);	//Baud rate specification
 	serial_port.SetVTime(1);	// Input Flow Control. Time to wait for data in tenths of a second
 	serial_port.SetVMin(0);		// Input Flow Control. Minimum number of characters to read
 
@@ -147,13 +145,28 @@ int main(int argc, char* argv[]){
 		vector<vector<Point>> contours_poly(contours.size());
   		vector<Point2f> center(contours.size());
   		vector<float> radius(contours.size());
+  		Point2f center1;
+  		float radius1;
 
-		for( int i = 0; i < contours.size(); i++ )
-	    {
-	        minEnclosingCircle( Mat (contours[i]), center[i], radius[i] ); // Allows better estimation of the real size of the object, independent of the rotation
-	        cout << int(center[i].x) << "\t" << int(center[i].y) << endl;
-	        serial_port << int(center[i].x) << "\n";
-	    }
+  		int largest_contour_index=0;
+  		double largest_area = 0;
+
+  		if(contours.size()>0){
+
+			for( int i = 0; i < contours.size(); i++ )
+		    {
+		    	double area = contourArea(contours[i],false);
+		    	if(area>largest_area){
+		    		largest_area = area;
+		    		largest_contour_index = i;
+		    	}
+		    	if(i == contours.size()-1){
+		    		minEnclosingCircle( Mat (contours[largest_contour_index]), center1, radius1 ); // Allows better estimation of the real size of the object, independent of the rotation
+		        	cout << int(center1.x) << "\t" << int(center1.y) << endl;
+		        	//serial_port << contours.size() << "\n";
+		    	}
+		    }
+		}
 
 	    /*==================================================================
 	    ========================	  VISUALS		========================
@@ -162,11 +175,11 @@ int main(int argc, char* argv[]){
 		============	to see the visual representation	================
 		==================================================================*/
 
-	    // Scalar color = Scalar(255,255,255); // The color of the drawn contour
+	 //    Scalar color = Scalar(255,255,255); // The color of the drawn contour
 		// Mat drawing = Mat::zeros(canny_output.size(), CV_8UC3 );
 		// for( int i = 0; i< contours.size(); i++ )
 		// {
-		//     circle( drawing, center[i], (int)radius[i], color, 2, 8, 0 );
+		//     circle( drawing, center1, (int)radius1, color, 2, 8, 0 );
 		// }
 		
 		// namedWindow("Original",CV_WINDOW_AUTOSIZE);
