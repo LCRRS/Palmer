@@ -67,7 +67,6 @@ int largest_contour_index;
 int thresh = 100;
 int max_thresh = 255;
 
-
 PID myPID(&PID_input_hor,&PID_output_hor,&Setpoint_hor,Kp_hor,Ki_hor,Kd_hor);
 
 int main(int argc, char* argv[]){
@@ -90,6 +89,13 @@ int main(int argc, char* argv[]){
 
 	double Width = source.set(CV_CAP_PROP_FRAME_WIDTH,size[0]); //get the width of frames of the video
 	double Height = source.set(CV_CAP_PROP_FRAME_HEIGHT,size[1]); //get the height of frames of the video
+
+	int width =  source.get(CV_CAP_PROP_FRAME_WIDTH);
+	int center_width = width/2;
+	int height = source.get(CV_CAP_PROP_FRAME_HEIGHT);
+	int center_height = height/2;
+
+	// cout << center_height << center_width << endl;
 
 	while(true){
 		
@@ -139,7 +145,7 @@ int main(int argc, char* argv[]){
 	    {
 	        minEnclosingCircle( Mat (contours[i]), center[i], radius[i] );
 	        cout << int(center[i].x) << "\t" << int(center[i].y) << endl;
-	        serial_port << to_string(int(center[i].x)) << "\n";
+	        serial_port << "31415\n" << "\n" << to_string(int(center[i].x)) << "\n" << to_string(int(center[i].y)) << "\n" << "\n";
 	    }
 
 	 //    Scalar color = Scalar(255,255,255); // The color of the drawn contour
