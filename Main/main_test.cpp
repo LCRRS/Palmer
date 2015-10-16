@@ -121,6 +121,8 @@ PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint_roll, KP_PR, KI_
 
 int takeoff_speed = START_SPEED; // Initializing the takeoff variables
 
+int error = 0; // Error status
+
 /*=============================================
 ======          AIR STABILIZATION        ======
 =============================================*/
@@ -303,6 +305,23 @@ void get_ypr(){
 }
 
 /*==============================================================
+=====                      STATUS BLINK        		       =====
+================================================================
+=====  Where status = 0 means pass And status !0 = error   =====
+==============================================================*/
+
+int statusLED = 13;
+
+void statusBlink(int status){
+	for(int i = 0; i < status; i++){
+		digitalWrite(statusLED,HIGH);
+		delay(300);
+		digitalWrite(statusLED,LOW);
+		delay(300);
+	}
+}
+
+/*==============================================================
 =====                      INITIAL SETUP                   =====
 ==============================================================*/
 
@@ -323,10 +342,12 @@ void setup(){
 	myservo4.writeMicroseconds(MIN_SIGNAL);
 	delay(4000);
 
+	pinMode(statusLED, OUTPUT); // Initialize the LED for output
+
 	// join I2C bus (I2Cdev library doesn't do this automatically)
 	#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-		Wire.begin();
-		TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+		Wire1.begin();
+//		TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
 	#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
 		Fastwire::setup(400, true);
 	#endif
@@ -337,7 +358,11 @@ void setup(){
 	mpu.initialize();
 
 	// verify connection
-	mpu.testConnection();
+	if (!mpu.testConnection()){
+		error = 1;
+		statusBlink(error);
+		exit(0);
+	}
 
 	devStatus = mpu.dmpInitialize();
 

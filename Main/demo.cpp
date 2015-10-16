@@ -22,7 +22,6 @@
 ==  The M#-P# represent the Arduino Pins ==
 ==  to which respective ESC is attached  ==
 ===========================================
-
                 yaw ---> +
           pitch -           roll +
             CW               CCW
@@ -41,7 +40,6 @@
           M4-P11           M3-P10
            CCW               CW
           roll -           pitch +
-
 ==========================================*/
 #include <PID_v1.h>
 #include <Servo.h>
@@ -53,24 +51,23 @@
 #endif
 
 #define OUTPUT_READABLE_YAWPITCHROLL
-#define OUTPUT_READABLE_WORLDACCEL
 
 #define MIN_SIGNAL 1000
 #define LOOPTIME 100
-#define START_SPEED 1750
-#define SAMPLE_TIME 25
+#define START_SPEED 1680
+#define SAMPLE_TIME 10
 
-#define KP_PR 6.5
-#define KI_PR 4.3
-#define KD_PR 0.85
-#define KP_YAW 0.0
+#define KP_PR 5.1
+#define KI_PR 0.0
+#define KD_PR 0.8
+#define KP_YAW 4.0
 #define KI_YAW 0.0
 #define KD_YAW 0.0
 
-#define LOWER_LIMIT_YAW -30
-#define UPPER_LIMIT_YAW 30
-#define LOWER_LIMIT_PR -120   // The lowest possible output that the PID can produce
-#define UPPER_LIMIT_PR 120 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
+#define LOWER_LIMIT_YAW -90 //when KI_YAW is zero set to 75
+#define UPPER_LIMIT_YAW 90
+#define LOWER_LIMIT_PR -45   // The lowest possible output that the PID can produce
+#define UPPER_LIMIT_PR 45 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
 MPU6050 mpu;
 
@@ -88,9 +85,6 @@ uint8_t devStatus;      // return status after each device operation (0 = succes
 uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
 uint16_t fifoCount;     // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
-VectorInt16 aa;         // [x, y, z]            accel sensor measurements
-VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
-VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
 
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
@@ -99,38 +93,13 @@ float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];
 
 bool initiation_count = false; // Used to initiate motor start/warmup routine inside the loop function only once
+bool yaw_orientation_update = true; //Used to determining whether the yaw axis should update its orientation setpoing for the PID
 
 float ypr0;
 float ypr1;
 float ypr2;
 
-float accel_x;
-float accel_y;
-float accel_z;
-
-// Operation is used to signal the mode of flight that the quadcopter should switch to.
-// It can only be set values "0", meaning HOVER/DEFAULT or "1", meaning "TRACKING"
-float operation;
-
-float pi_data[5]; // [horizontal, vertical, distance] container of the offset from the raspberry pi
-
-/*=================================================
-=================== SERIAL READ ===================
-=================================================*/
-
-void serial_read() {
-    if (Serial.parseInt() == 314159)
-    {
-        for (int i = 0; i < 5; i++)
-        {
-            float new_val = (float(Serial.parseInt()))/10.0;
-            pi_data[i] = new_val;
-
-        }
-        pi_data[0] = 314159.0;
-    }
-
-}
+int pi_data; // [horizontal, vertical, distance] container of the offset from the raspberry pi
 
 /*=================================================
 ================= PID CONTROLLER ==================
@@ -148,12 +117,67 @@ PID myPID_yaw(&pid_input_yaw, &pid_output_yaw, &pid_setPoint_yaw, KP_YAW, KI_YAW
 PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint_pitch, KP_PR, KI_PR, KD_PR, DIRECT);
 PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint_roll, KP_PR, KI_PR, KD_PR, DIRECT);        //PID class object that is associated with respected variables for the roll plane
 
+/*=============================================
+======          AIR STABILIZATION        ======
+=============================================*/
+
+void stabilize(float current_speed){
+
+    pid_input_yaw = ypr0;
+    pid_input_pitch = ypr1;
+    pid_input_roll = ypr2;
+
+    myPID_yaw.Compute(&pid_setPoint_yaw);
+    myPID_pitch.Compute(&pid_setPoint_pitch);
+    myPID_roll.Compute(&pid_setPoint_roll);
+
+    // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
+    // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
+
+    speed_myservo1 = current_speed - pid_output_pitch - pid_output_yaw;
+    speed_myservo2 = current_speed + pid_output_roll + pid_output_yaw;
+    speed_myservo3 = current_speed + pid_output_pitch - pid_output_yaw;
+    speed_myservo4 = current_speed - pid_output_roll + pid_output_yaw;
+
+    indivSpeed(myservo1, speed_myservo1);
+    indivSpeed(myservo2, speed_myservo2);
+    indivSpeed(myservo3, speed_myservo3);
+    indivSpeed(myservo4, speed_myservo4);
+}
+
+/*=================================================
+=================== SERIAL READ ===================
+=================================================*/
+
+void serial_read() {
+
+    int new_val = Serial.parseInt();
+    pi_data = new_val;
+
+
+    /*
+    The point of the following if statements is to stop the ypr0 values from updating when we are
+    not receiving values from the pi.  This is to prevent drifting in the yaw axis when the pi values are not present.
+    */
+    if(pi_data <= 1 && pi_data >= -1){ //Check if receiving values
+        if(yaw_orientation_update != false){ //check if this is the first cycle without a value
+            pid_setPoint_yaw = ypr0;  //Since this is the first cycle, take the current value to keep until we get another reading from the pi
+            yaw_orientation_update = false; //since not receiving values, keep old ypr0
+        }
+    }
+    else{
+        pid_setPoint_yaw = ypr0 + pi_data; //if an object is being tracked sets the new pid target value
+        yaw_orientation_update = true; //since receiving values, update ypr0
+    }
+    pid_setPoint_pitch = 0;
+    pid_setPoint_roll = 0;
+}
+
 /*============================================================
 ===============         WARM-UP ROUTINE       ================
 ============================================================*/
 
-void warmup()
-{
+void warmup(){
     myPID_yaw.SetOutputLimits(LOWER_LIMIT_YAW, UPPER_LIMIT_YAW);
     myPID_pitch.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
     myPID_roll.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
@@ -162,33 +186,17 @@ void warmup()
     myPID_pitch.SetSampleTime(SAMPLE_TIME);
     myPID_roll.SetSampleTime(SAMPLE_TIME);
 
-    while (!initiation_count)
-    {
+    while (!initiation_count){
         serial_read();
-        if (pi_data[0] == 314159)
-        {
-            for (int speed = 1000; speed < START_SPEED; speed++)
-            {
+        if (pi_data == 11){
+            for (int speed = 1000; speed < START_SPEED; speed++){
                 setSpeed(speed);
                 delay(10);
             }
             initiation_count = true;
             setSpeed(START_SPEED);
-            Serial.println("warmup");
         }
     }
-    Serial.println("warmup");
-}
-
-/*==============================================================
-===                     AUTOMATED TAKEOFF                    ===
-================================================================
-===      This function is used to automate the takeoff       ===
-===                      of the quadcopter                   ===
-==============================================================*/
-
-void takeoff(){
-    get_ypr();
 }
 
 /*==============================================================
@@ -198,8 +206,7 @@ void takeoff(){
 ===                  to the same value                       ===
 ==============================================================*/
 
-void setSpeed(float speed)
-{
+void setSpeed(float speed){
     myservo1.writeMicroseconds(speed);
     myservo2.writeMicroseconds(speed);
     myservo3.writeMicroseconds(speed);
@@ -214,8 +221,7 @@ void setSpeed(float speed)
 ===                 of stabilization routine                 ===
 ==============================================================*/
 
-void indivSpeed(Servo servo, float speed)
-{
+void indivSpeed(Servo servo, float speed){
     servo.writeMicroseconds(speed);
 }
 
@@ -224,8 +230,7 @@ void indivSpeed(Servo servo, float speed)
 ==============================================================*/
 
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-void dmpDataReady()
-{
+void dmpDataReady(){
     mpuInterrupt = true;
 }
 
@@ -233,8 +238,7 @@ void dmpDataReady()
 =======                   GET GYRO/ACCEL                ========
 ==============================================================*/
 
-void get_ypr()
-{
+void get_ypr(){
     // reset interrupt flag and get INT_STATUS byte
     mpuInterrupt = false;
     mpuIntStatus = mpu.getIntStatus();
@@ -265,21 +269,9 @@ void get_ypr()
             mpu.dmpGetGravity(&gravity, &q);
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
-            ypr0 = (ypr[0] * 180/M_PI);
-            ypr1 = (ypr[1] * 180/M_PI)-1.95;
-            ypr2 = (ypr[2] * 180/M_PI)-2.75;
-        #endif
-
-        #ifdef OUTPUT_READABLE_WORLDACCEL
-            // display initial world-frame acceleration, adjusted to remove gravity
-            // and rotated based on known orientation from quaternion
-            mpu.dmpGetAccel(&aa, fifoBuffer);
-            mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
-            mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
-
-            accel_x = aaWorld.x;
-            accel_y = aaWorld.y;
-            accel_z = aaWorld.z;
+            ypr0 = (ypr[0] * 180/M_PI)+180;
+            ypr1 = (ypr[1] * 180/M_PI)-2.87;
+            ypr2 = (ypr[2] * 180/M_PI)-2.58;
         #endif
     }
 }
@@ -288,8 +280,7 @@ void get_ypr()
 =====                      INITIAL SETUP                   =====
 ==============================================================*/
 
-void setup()
-{
+void setup(){
     Serial.begin(115200);
     pid_input_yaw = ypr0;
     pid_input_pitch = ypr1;
@@ -317,14 +308,11 @@ void setup()
     while (!Serial);
 
     // initialize device
-    Serial.println(F("Initializing I2C devices..."));
     mpu.initialize();
 
     // verify connection
-    Serial.println(F("Testing device connections..."));
-    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+    mpu.testConnection();
 
-    Serial.println(F("Initializing DMP..."));
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
@@ -334,86 +322,58 @@ void setup()
     mpu.setZAccelOffset(1063); // 1688 factory default for my test chip
 
     // make sure it worked (returns 0 if so)
-    if (devStatus == 0)
-    {
+    if (devStatus == 0){
         // turn on the DMP, now that it's ready
-        Serial.println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
         // enable Arduino interrupt detection
-        Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
 
         attachInterrupt(0, dmpDataReady, RISING);
 
         mpuIntStatus = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        Serial.println(F("DMP ready! Waiting for first interrupt..."));
         dmpReady = true;
 
         // get expected DMP packet size for later comparison
         packetSize = mpu.dmpGetFIFOPacketSize();
     }
 
-    else
-    {
-        // ERROR!
-        // 1 = initial memory load failed
-        // 2 = DMP configuration updates failed
-        // (if it's going to break, usually the code will be 1)
-        Serial.print(F("DMP Initialization failed (code "));
-        Serial.print(devStatus);
-        Serial.println(F(")"));
-    }
     myPID_yaw.SetMode(AUTOMATIC);
     myPID_roll.SetMode(AUTOMATIC);
     myPID_pitch.SetMode(AUTOMATIC);
-    mpu.setRate(0x09);
+    mpu.setRate(0x01);
+
+    bool cat = false;
+    while(!cat) {
+        serial_read();
+        if (pi_data == 11) {
+            cat = true;
+        }
+    }
+    warmup();
 }
+
+int counter = 0;
 
 void loop() {
     // if programming failed, don't try to do anything
     if (!dmpReady) return;
 
     // wait for MPU interrupt or extra packet(s) available
-    if (!mpuInterrupt && fifoCount < packetSize)
-    {
-        warmup();
-        if(initiation_count == true)
-        {
+    if (!mpuInterrupt){
+        if (counter == 50){
             serial_read();
-            operation = pi_data[4];
-
-            pid_setPoint_yaw = ypr0 + pi_data[1]; //if an object is being tracked sets the new pid target value
-            pid_setPoint_pitch = pi_data[3];
-            pid_setPoint_roll = pi_data[3];
-
-            /*=============================================
-            ======          AIR STABILIZATION        ======
-            =============================================*/
-            pid_input_yaw = ypr0;
-            pid_input_pitch = ypr1;
-            pid_input_roll = ypr2;
-
-            myPID_yaw.Compute();
-            myPID_pitch.Compute(&pid_setPoint_pitch);
-            myPID_roll.Compute(&pid_setPoint_roll);
-
-            // Speed is being calculated from the preset base_speed compensated with the respective pid oututs
-            // and is adjusted to move in a vertical plane in accordance with the object being tracked (if present)
-
-            speed_myservo1 = START_SPEED - pid_output_pitch + pid_output_yaw + pi_data[2];
-            speed_myservo2 = START_SPEED + pid_output_roll - pid_output_yaw + pi_data[2];
-            speed_myservo3 = START_SPEED + pid_output_pitch + pid_output_yaw + pi_data[2];
-            speed_myservo4 = START_SPEED - pid_output_roll - pid_output_yaw + pi_data[2];
-
-            indivSpeed(myservo1, speed_myservo1);
-            indivSpeed(myservo2, speed_myservo2);
-            indivSpeed(myservo3, speed_myservo3);
-            indivSpeed(myservo4, speed_myservo4);
-
-            Serial.print("Horizontal =  ");
+            counter=0;
         }
+        else{
+            counter++;
+        }
+
+        stabilize(START_SPEED);
+        Serial.print("Motor #1:    ");
+        Serial.println(speed_myservo1);
     }
     get_ypr();
+
 }
