@@ -121,6 +121,8 @@ PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint_roll, KP_PR, KI_
 
 int takeoff_speed = START_SPEED; // Initializing the takeoff variables
 
+int errorCode = 0; // Initializing errorCode variable that will hold the error status
+
 /*=============================================
 ======          AIR STABILIZATION        ======
 =============================================*/
@@ -303,6 +305,25 @@ void get_ypr(){
 }
 
 /*==============================================================
+=====                     STATUS BLINKING                  =====
+================================================================
+=== ErrorCode = 0 means no error, ErrorCode != 0 means error ===
+==============================================================*/
+
+int statusLED = 13;
+
+void statusBlinking(int error){
+	if (error != 0){
+		for (int i = 0;i < error;i++){
+			digitalWrite(statusLED,HIGH);
+			delay(300);	
+			digitalWrite(statusLED,LOW);
+			delay(300);
+		}
+	}
+}
+
+/*==============================================================
 =====                      INITIAL SETUP                   =====
 ==============================================================*/
 
@@ -325,8 +346,8 @@ void setup(){
 
 	// join I2C bus (I2Cdev library doesn't do this automatically)
 	#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-		Wire.begin();
-		TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+		Wire1.begin();
+//		TWBR = 12; // 400kHz I2C clock (200kHz if CPU is 8MHz)
 	#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
 		Fastwire::setup(400, true);
 	#endif
@@ -337,7 +358,11 @@ void setup(){
 	mpu.initialize();
 
 	// verify connection
-	mpu.testConnection();
+	if (!mpu.testConnection()){
+		errorCode = 1;
+		statusBlinking(errorCode);
+		exit(0);
+	}
 
 	devStatus = mpu.dmpInitialize();
 
@@ -365,6 +390,12 @@ void setup(){
 		packetSize = mpu.dmpGetFIFOPacketSize();
 	}
 
+	else {
+        errorCode = 2;
+        statusBlinking(errorCode);
+        exit(0);
+    }
+
 	myPID_yaw.SetMode(AUTOMATIC);
 	myPID_roll.SetMode(AUTOMATIC);
 	myPID_pitch.SetMode(AUTOMATIC);
@@ -387,7 +418,11 @@ int counter = 0;
 
 void loop() {
 	// if programming failed, don't try to do anything
-	if (!dmpReady) return;
+	if (!dmpReady) {
+		errorCode = 3;
+		statusBlinking(errorCode);
+		return;
+	}
 
 	// wait for MPU interrupt or extra packet(s) available
 	if (!mpuInterrupt){
