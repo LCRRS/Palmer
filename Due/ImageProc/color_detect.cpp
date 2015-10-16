@@ -171,7 +171,7 @@ int main(int argc, char* argv[]){
 		    	if(i == contours.size()-1){
 		    		minEnclosingCircle( Mat (contours[largest_contour_index]), center1, radius1 ); // Allows better estimation of the real size of the object, independent of the rotation
 		        	cout << int(center1.x) << "\t" << int(center1.y) << endl;
-		        	serial_port << "31415\n" << "\n" << to_string(int(center1.x)) << "\n" << to_string(int(center1.y)) << "\n" << "\n";
+		        	serial_port << "31415\n" << "\n" << to_string(center_width - int(center1.x)) << "\n" << to_string(center_height - int(center1.y)) << "\n" << "\n";
 		    	}
 		    }
 		}
