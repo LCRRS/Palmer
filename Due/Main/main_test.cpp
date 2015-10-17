@@ -71,6 +71,15 @@
 #define LOWER_LIMIT_PR -48   // The lowest possible output that the PID can produce
 #define UPPER_LIMIT_PR 48 // The maximum possible output that the PID can produce (anything higher will be set back to this value)
 
+#define ERROR_CODE_GYRO_CONNECTION 	4
+#define ERROR_CODE_GYRO_DMP 		3
+#define ERROR_TIME_GYRO_CONNECTION 	300
+#define ERROR_TIME_GYRO_DMP 		600
+#define NO_ERROR 			0
+#define LED_RED_ALARM 		53
+#define LED_BLUE_WARNING 	49
+#define LED_GREEN_OK 		51
+
 MPU6050 mpu;
 
 Servo myservo1;
@@ -101,8 +110,6 @@ float ypr0;
 float ypr1;
 float ypr2;
 
-int pi_data; // [horizontal, vertical, distance] container of the offset from the raspberry pi
-
 /*=================================================
 ================= PID CONTROLLER ==================
 =================================================*/
@@ -120,8 +127,6 @@ PID myPID_pitch(&pid_input_pitch, &pid_output_pitch, &pid_setPoint_pitch, KP_PR,
 PID myPID_roll(&pid_input_roll, &pid_output_roll, &pid_setPoint_roll, KP_PR, KI_PR, KD_PR, DIRECT);        //PID class object that is associated with respected variables for the roll plane
 
 int takeoff_speed = START_SPEED; // Initializing the takeoff variables
-
-int errorCode = 0; // Initializing errorCode variable that will hold the error status
 
 /*=============================================
 ======          AIR STABILIZATION        ======
@@ -154,25 +159,30 @@ void stabilize(float current_speed){
 /*=================================================
 =================== SERIAL READ ===================
 =================================================*/
+	
+int x_axis = 0;
+int y_axis = 0;
 
 void serial_read() {
-
-	int new_val = Serial.parseInt();
-	pi_data = new_val;
+    
+    if (Serial.find("s")) {
+    	x_axis = Serial.parseInt(); // parses numeric characters before the comma
+    	y_axis = Serial.parseInt();// parses numeric characters after the comma
+    }
 
 
 	/*
 	The point of the following if statements is to stop the ypr0 values from updating when we are
 	not receiving values from the pi.  This is to prevent drifting in the yaw axis when the pi values are not present.
 	*/
-	if(pi_data <= 1 && pi_data >= -1){ //Check if receiving values
+	if(x_axis <= 10 && x_axis >= -10){ //Check if receiving values
 		if(yaw_orientation_update != false){ //check if this is the first cycle without a value
 			pid_setPoint_yaw = ypr0;  //Since this is the first cycle, take the current value to keep until we get another reading from the pi
 			yaw_orientation_update = false; //since not receiving values, keep old ypr0
 		}
 	}
 	else{
-		pid_setPoint_yaw = ypr0 + pi_data; //if an object is being tracked sets the new pid target value
+		pid_setPoint_yaw = ypr0 + x_axis; //if an object is being tracked sets the new pid target value
 		yaw_orientation_update = true; //since receiving values, update ypr0
 	}
 	pid_setPoint_pitch = 0;
@@ -184,6 +194,7 @@ void serial_read() {
 ============================================================*/
 
 void warmup(){
+	Serial.println("inside warmup");
 	myPID_yaw.SetOutputLimits(LOWER_LIMIT_YAW, UPPER_LIMIT_YAW);
 	myPID_pitch.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
 	myPID_roll.SetOutputLimits(LOWER_LIMIT_PR, UPPER_LIMIT_PR);
@@ -194,7 +205,7 @@ void warmup(){
 
 	while (!initiation_count){
 		serial_read();
-		if (pi_data == 11){
+		if (Serial.find("s")){
 			for (int speed = 1000; speed < BASE_SPEED; speed++){
 				setSpeed(speed);
 				delay(10);
@@ -214,6 +225,7 @@ void warmup(){
 ==============================================================*/
 
 void takeoff(){
+	Serial.println("inside takeoff");
 	get_ypr();
 	pid_input_yaw = ypr0;
 	pid_input_pitch = ypr1;
@@ -310,15 +322,16 @@ void get_ypr(){
 === ErrorCode = 0 means no error, ErrorCode != 0 means error ===
 ==============================================================*/
 
-int statusLED = 13;
-
-void statusBlinking(int error){
+void statusBlinking(int error,int timing){
 	if (error != 0){
+		Serial.println("blink");
+		digitalWrite(LED_GREEN_OK,LOW);
+		digitalWrite(LED_BLUE_WARNING,LOW);
 		for (int i = 0;i < error;i++){
-			digitalWrite(statusLED,HIGH);
-			delay(300);	
-			digitalWrite(statusLED,LOW);
-			delay(300);
+			digitalWrite(LED_RED_ALARM,HIGH);
+			delay(timing);	
+			digitalWrite(LED_RED_ALARM,LOW);
+			delay(timing);
 		}
 	}
 }
@@ -328,7 +341,7 @@ void statusBlinking(int error){
 ==============================================================*/
 
 void setup(){
-	Serial.begin(115200);
+	Serial.begin(9600);
 	pid_input_yaw = ypr0;
 	pid_input_pitch = ypr1;
 	pid_input_roll = ypr2;
@@ -354,13 +367,14 @@ void setup(){
 
 	while (!Serial);
 
+	Serial.println("starting gyro setup");
+
 	// initialize device
 	mpu.initialize();
 
 	// verify connection
-	if (!mpu.testConnection()){
-		errorCode = 1;
-		statusBlinking(errorCode);
+	if (mpu.testConnection() != 1){
+		statusBlinking(ERROR_CODE_GYRO_CONNECTION,ERROR_TIME_GYRO_CONNECTION);
 		exit(0);
 	}
 
@@ -391,25 +405,31 @@ void setup(){
 	}
 
 	else {
-        errorCode = 2;
-        statusBlinking(errorCode);
+        statusBlinking(ERROR_CODE_GYRO_DMP,ERROR_TIME_GYRO_DMP);
         exit(0);
     }
+
+    Serial.println("got past gyro setup");
 
 	myPID_yaw.SetMode(AUTOMATIC);
 	myPID_roll.SetMode(AUTOMATIC);
 	myPID_pitch.SetMode(AUTOMATIC);
 	mpu.setRate(0x00);
 
+	Serial.println("verifying sserial_read");
 	bool cat = false;
 	while(!cat) {
 		serial_read();
-		if (pi_data == 11) {
+		if (Serial.find("s")) {
 			cat = true;
 		}
 	}
+
+	digitalWrite(LED_GREEN_OK,HIGH);
+	Serial.println("setup warmup starts");
 	warmup();
 	while(takeoff_speed != BASE_SPEED){
+		Serial.println("takeoff is workig");
 		takeoff();
 	}
 }
@@ -419,8 +439,6 @@ int counter = 0;
 void loop() {
 	// if programming failed, don't try to do anything
 	if (!dmpReady) {
-		errorCode = 3;
-		statusBlinking(errorCode);
 		return;
 	}
 
@@ -437,5 +455,6 @@ void loop() {
 		stabilize(BASE_SPEED);
 	}
 	get_ypr();
+	Serial.println("hello");
 
 }
