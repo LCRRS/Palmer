@@ -65,15 +65,25 @@ int radius_frame_max = 160;    // The maximum desired radius of the object being
 int area_frame_max = 80425;   // The maximum desired area of the object being tracked
 int size[2] = {640,480};	 // The resolution of the camera
 
-float PID_input_hor = 0;
-float PID_output_hor = 0;
-float Setpoint_hor = 320;          // The desired position of the quadcopter in centimeters
-float Kp_hor = 0.135;              // Proportionality constant for the PID calculation of the Distance
-float Ki_hor = 0.001;			   // Integral Constant for the PID calculation of Distance
-float Kd_hor = 0.03;               // Derivative constant for the PID calculation of Distance
-float Upper_Limit_hor = 10.0;      // Upper limit for the PID output of the distance correction
-float Lower_Limit_hor = -10.0;     // Lower limit for the PID output of the distance correction
-PID myPID(&PID_input_hor,&PID_output_hor,&Setpoint_hor,Kp_hor,Ki_hor,Kd_hor); //Initializing the PID instance
+float PID_input_x = 0;
+float PID_output_x = 0;
+float Setpoint_x = 320;          // The desired position of the quadcopter in centimeters
+float Kp_x = 0.135;              // Proportionality constant for the PID calculation of the Distance
+float Ki_x = 0.001;			   // Integral Constant for the PID calculation of Distance
+float Kd_x = 0.03;               // Derivative constant for the PID calculation of Distance
+float Upper_Limit_x = 10.0;      // Upper limit for the PID output of the distance correction
+float Lower_Limit_x = -10.0;     // Lower limit for the PID output of the distance correction
+PID myPID_x(&PID_input_x,&PID_output_x,&Setpoint_x,Kp_x,Ki_x,Kd_x); //Initializing the PID instance for x coordinates
+
+float PID_input_y = 0;
+float PID_output_y = 0;
+float Setpoint_y = 320;          // The desired position of the quadcopter in centimeters
+float Kp_y = 0.135;              // Proportionality constant for the PID calculation of the Distance
+float Ki_y = 0.001;			   // Integral Constant for the PID calculation of Distance
+float Kd_y = 0.03;               // Derivative constant for the PID calculation of Distance
+float Upper_Limit_y = 10.0;      // Upper limit for the PID output of the distance correction
+float Lower_Limit_y = -10.0;     // Lower limit for the PID output of the distance correction
+PID myPID_y(&PID_input_y,&PID_output_y,&Setpoint_y,Kp_y,Ki_y,Kd_y); //Initializing the PID instance for y coordinates
 
 int lowH = 35;			//Low pass value for Hue
 int highH = 60;			//High pass value for Hue
@@ -93,7 +103,8 @@ int main(int argc, char* argv[]){
 	serial_port.SetVTime(1);	// Input Flow Control. Time to wait for data in tenths of a second
 	serial_port.SetVMin(0);		// Input Flow Control. Minimum number of characters to read
 
-	myPID.SetLimits(&Upper_Limit_hor,&Lower_Limit_hor); // Setting the upper and lower limit for the PID calculation
+	myPID_x.SetLimits(&Upper_Limit_x,&Lower_Limit_x); // Setting the upper and lower limit for the PID calculation on x coordinates
+	myPID_y.SetLimits(&Upper_Limit_y,&Lower_Limit_y); // Setting the upper and lower limit for the PID calculation on y coordinates
 
 	VideoCapture source(0);	 // Capturng on the default port
 	if (!source.isOpened())  // if not success, exit program
@@ -114,8 +125,6 @@ int main(int argc, char* argv[]){
 
 
 	while(true){
-		
-		myPID.Compute();	//Compute the PID values
 
 		Mat original_frame;
 		bool Success = source.read(original_frame);
@@ -171,10 +180,18 @@ int main(int argc, char* argv[]){
 		    	if(i == contours.size()-1){
 		    		minEnclosingCircle( Mat (contours[largest_contour_index]), center1, radius1 ); // Allows better estimation of the real size of the object, independent of the rotation
 		        	cout << int(center1.x) << "\t" << int(center1.y) << endl;
-		        	serial_port << "31415\n" << "\n" << to_string(center_width - int(center1.x)) << "\n" << to_string(center_height - int(center1.y)) << "\n" << "\n";
+		        	PID_input_x = float(center1.x);
+		        	PID_input_y = float(center1.y);
 		    	}
 		    }
 		}
+
+		
+		
+		myPID_x.Compute();	//Compute the PID values
+		myPID_y.Compute();	//Compute the PID values
+
+		serial_port << "31415\n" << "\n" << to_string(int(PID_output_x)) << "\n" << to_string(int(PID_output_y)) << "\n" << "\n";
 
 	    /*==================================================================
 	    ========================	  VISUALS		========================
