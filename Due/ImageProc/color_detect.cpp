@@ -191,7 +191,9 @@ int main(int argc, char* argv[]){
 		myPID_x.Compute();	//Compute the PID values
 		myPID_y.Compute();	//Compute the PID values
 
-		serial_port << "31415\n" << "\n" << to_string(int(PID_output_x)) << "\n" << to_string(int(PID_output_y)) << "\n" << "\n";
+		String newst = "s," + to_string(int(PID_output_x)) + "," + to_string(int(PID_output_y)) + "\n";
+
+		serial_port << newst;
 
 	    /*==================================================================
 	    ========================	  VISUALS		========================
