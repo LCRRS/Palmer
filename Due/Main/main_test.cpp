@@ -341,6 +341,11 @@ void statusBlinking(int error,int timing){
 ==============================================================*/
 
 void setup(){
+
+	pinMode(LED_GREEN_OK, OUTPUT);
+	pinMode(LED_BLUE_WARNING,OUTPUT);
+	pinMode(LED_RED_ALARM,OUTPUT);
+
 	Serial.begin(9600);
 	pid_input_yaw = ypr0;
 	pid_input_pitch = ypr1;
