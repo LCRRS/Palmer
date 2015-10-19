@@ -50,6 +50,12 @@
 ==============================================*/
 #include <SerialStream.h> //POSIX and termios based library for Serial communication
 
+/*=============================================
+========== 	  Task Parallelization	   ========
+==============================================*/
+
+# include <omp.h>
+
 using namespace cv; // USING THE NAMESPACE FOR OPENCV OBJECTS
 using namespace std; // USING NAMESPACE FOR THE GENERAL PURPOSE OBJECTS
 using namespace LibSerial; // USING NAMESPACE FOR THE Serial
